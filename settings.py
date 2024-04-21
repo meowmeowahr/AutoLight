@@ -38,5 +38,6 @@ LIGHT_UID = "light_staircase"
 INTERACTIVE_LOG_LEVEL = WARNING # Logging level for use in an interactive terminal
 REGULAR_LOG_LEVEL = WARNING # Logging level for non-interactive shell
 
-# Fancy Logging
+# Fancy Terminal Output
+DO_FANCY_TERM_OUT = True
 FANCY_LOGGING_LEVELS = [DisplayStatusTypes.ALL]

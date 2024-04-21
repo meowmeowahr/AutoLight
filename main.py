@@ -38,8 +38,9 @@ class Main:
         startup_time = time.time()
 
         # Visual setup
-        banner()
-        self.fancy_display = FancyDisplay(settings.FANCY_LOGGING_LEVELS)
+        if settings.DO_FANCY_TERM_OUT:
+            banner()
+        self.fancy_display = FancyDisplay(settings.FANCY_LOGGING_LEVELS if settings.DO_FANCY_TERM_OUT else [])
         atexit.register(self.at_exit)
 
         # Quick sanity checks
