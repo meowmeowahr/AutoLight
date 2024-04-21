@@ -104,7 +104,6 @@ class LedArray:
         else:
             self._led_data[index]["effect"] = _LedPowerOnState.NONE
 
-        
     def end(self):
         logging.info(f"Ended {self}")
         for channel in self.pca.channels:

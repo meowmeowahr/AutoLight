@@ -5,6 +5,8 @@ from ha_mqtt_discoverable import Settings
 
 from terminal import DisplayStatusTypes
 
+## Sensor Section
+
 # Number of sensors present in the system (must all be on the main i2c bus)
 # SENSOR_COUNT = 15
 SENSOR_COUNT = 1
@@ -19,8 +21,15 @@ SENSOR_TIMING_BUDGET = 66000
 # Sensor trip distance (cm)
 SENSOR_TRIP_DISTANCE = 87
 
+## Led Settings
+
 # Number of leds present in system (must be the same as the number of sensors)
 LED_COUNT = SENSOR_COUNT
+
+## Lighting frequency control (usually the higher the better, but required settingss may vary)
+LED_FREQ = 120
+
+## Home Assistant Options
 
 # MQTT Broker for Home Assistant
 MQTT_SETTINGS = Settings.MQTT(host="homeassistant.lan", username=environ["BROKER_USER"], password=environ["BROKER_PASS"])
@@ -33,6 +42,8 @@ DEVICE_ID = "sl"
 LIGHT_NAME = "Main Control"
 LIGHT_ICON = "mdi:stairs"
 LIGHT_UID = "light_staircase"
+
+## Logging Settings
 
 # Logging
 INTERACTIVE_LOG_LEVEL = WARNING # Logging level for use in an interactive terminal

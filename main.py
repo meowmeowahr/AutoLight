@@ -59,7 +59,7 @@ class Main:
         self.sensor_trips = [[]] * settings.SENSOR_COUNT
 
         # Physical led outputs
-        self.led_array = LedArray(LedSettings(led_count=settings.LED_COUNT))
+        self.led_array = LedArray(LedSettings(led_count=settings.LED_COUNT, freq=settings.LED_FREQ))
         self.fancy_display.display(StatusTypes.SUCCESS, f"Initialized {settings.LED_COUNT} leds over PCA")
 
         # Create Home Assistant Light
