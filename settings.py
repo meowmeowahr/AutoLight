@@ -26,8 +26,11 @@ SENSOR_TRIP_DISTANCE = 87
 # Number of leds present in system (must be the same as the number of sensors)
 LED_COUNT = SENSOR_COUNT
 
-## Lighting frequency control (usually the higher the better, but required settingss may vary)
+# Lighting frequency control (usually the higher the better, but required settingss may vary)
 LED_FREQ = 120
+
+# Lighting frame rate cap
+LED_FPS = 240
 
 ## Home Assistant Options
 

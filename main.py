@@ -59,7 +59,7 @@ class Main:
         self.sensor_trips = [[]] * settings.SENSOR_COUNT
 
         # Physical led outputs
-        self.led_array = LedArray(LedSettings(led_count=settings.LED_COUNT, freq=settings.LED_FREQ))
+        self.led_array = LedArray(LedSettings(led_count=settings.LED_COUNT, freq=settings.LED_FREQ, fps=settings.LED_FPS))
         self.fancy_display.display(StatusTypes.SUCCESS, f"Initialized {settings.LED_COUNT} leds over PCA")
 
         # Create Home Assistant Light
@@ -97,29 +97,23 @@ class Main:
             return
 
         if "brightness" in payload:
-            # for index in range(led_array.get_led_count()):
-            #     led_array.set_brightness(index, payload["brightness"], subsystems.leds.PowerUnits.BITS8)
             self.lighting_data.brightness = payload["brightness"]
             self.ha_light.brightness(payload["brightness"])
+            return
         if "effect" in payload:
-            # when changing effect led is auto-on
-            # for index in range(led_array.get_led_count()):
-            #     led_array.set_power_state(index, True)
             self.lighting_data.effect = LIGHT_EFFECTS[payload["effect"]]
             self.ha_light.effect(payload["effect"])
+            return
         if "state" in payload:
             if payload["state"] == self.ha_light_info.payload_on:
-                # for index in range(led_array.get_led_count()):
-                #     led_array.set_power_state(index, True)
                 self.lighting_data.power = True
                 self.ha_light.on()
             else:
-                # for index in range(led_array.get_led_count()):
-                #     led_array.set_power_state(index, False)
                 self.lighting_data.power = False
                 self.ha_light.off()
-        else:
-            logging.warning(f"Unknown payload: {payload}")
+            return
+
+        logging.warning(f"Unknown payload: {payload}")
 
     def create_ha_light(self, callback, device_info):
         # Information about the light
@@ -130,7 +124,6 @@ class Main:
             unique_id=settings.LIGHT_UID,
             brightness=True,
             color_mode=False,
-            force_update=True,
             effect=True,
             effect_list=list(LIGHT_EFFECTS.keys()))
 
@@ -181,7 +174,7 @@ class Main:
                     self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
                     self.led_array.set_animation(index, NullAnimation())
 
-            time.sleep(0.1)
+            time.sleep(1 / settings.LED_FPS)
 
     def at_exit(self):
         if not self.sensors:
