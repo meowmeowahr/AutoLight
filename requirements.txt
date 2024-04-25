@@ -4,3 +4,4 @@ lgpio
 adafruit-circuitpython-pca9685
 adafruit-circuitpython-vl53l0x
 numpy
+psutil

@@ -1,3 +1,6 @@
+import platform
+
+
 def surround_list(input: list[bool], radius=1):
     padded_lst = input.copy()  # Create a copy of the original list
     for i in range(len(input)):
@@ -11,3 +14,6 @@ def surround_list(input: list[bool], radius=1):
 
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
+
+def is_os_64bit():
+    return platform.machine().endswith('64')

@@ -10,11 +10,15 @@ from ha_mqtt_discoverable import Settings
 from ha_mqtt_discoverable.sensors import (
     BinarySensor,
     BinarySensorInfo,
+    Sensor,
+    SensorInfo,
     DeviceInfo,
     Light,
     LightInfo,
 )
 from paho.mqtt.client import Client, MQTTMessage
+
+import psutil
 
 from subsystems.leds import LedArray, LedSettings, NullAnimation, PowerUnits
 from subsystems.sensors import VL53L0XSensor
@@ -22,7 +26,7 @@ from subsystems.sensors import VL53L0XSensor
 from terminal import banner, FancyDisplay, is_interactive
 from terminal import DisplayStatusTypes as StatusTypes
 
-from utils import surround_list
+from utils import surround_list, is_os_64bit
 from data_types import LightingData, LIGHT_EFFECTS, Animations
 
 import checks
@@ -73,23 +77,29 @@ class Main:
         # Create Home Assistant Light
         self.ha_light, self.ha_light_info = self.create_ha_light(self.ha_light_callback, self.device_info)
 
+        # Create Home Assistant Debug Devices
+        self.cpu_sensor = None
+        if settings.CREATE_DEBUG_ENTITIES:
+            sensor_info = SensorInfo(device=self.device_info, name="CPU Usage", icon="mdi:cpu-64-bit" if is_os_64bit() else "mdi:cpu-32-bit", unit_of_measurement="%", unique_id="cpu")
+            self.cpu_sensor = Sensor(Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info))
+
         # Launch led thread
         self.led_update_thread = threading.Thread(target=self.led_array.update_loop, daemon=True)
         self.led_update_thread.start()
 
         # Sensor thread
-        self.sensor_thread = threading.Thread(target=self.sensor_loop)
+        self.sensor_thread = threading.Thread(target=self.sensor_loop, daemon=True)
         self.sensor_thread.start()
 
         # Animation thread
-        self.animator_thread = threading.Thread(target=self.animator_loop)
+        self.animator_thread = threading.Thread(target=self.animator_loop, daemon=True)
         self.animator_thread.start()
 
         # Set light startup
         time.sleep(0.1) # Home Assistant needs this small delay
         self.ha_light.brightness(255)
         self.ha_light.effect("Walking")
-        self.ha_light.off()
+        self.ha_light.on()
 
         self.fancy_display.display(StatusTypes.LAUNCH, f"Auto-Light version {__version__} is up!")
         self.fancy_display.display(StatusTypes.INFO, f"Startup time: {round(time.time() - startup_time, 2)}s")
@@ -187,7 +197,7 @@ class Main:
     def animator_loop(self):
         while True:
             time.sleep(1 / (settings.LED_FPS if self.lighting_data.power else settings.LED_OFF_FPS))
-            
+
             if self.lighting_data.power is False:
                 for index in range(len(self.sensor_trips)):
                     self.led_array.set_power_state(index, False)
@@ -228,4 +238,10 @@ if __name__ == "__main__":
     else:
         logging.basicConfig(level=settings.REGULAR_LOG_LEVEL if not args.verbose else logging.DEBUG)
 
-    main = Main(args)    
+    main = Main(args)
+
+    # Main loop
+    while True:
+        if main.cpu_sensor:
+            main.cpu_sensor.set_state(psutil.cpu_percent())
+        time.sleep(settings.DEBUG_UPDATE_RATE)
