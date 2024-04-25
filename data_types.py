@@ -16,8 +16,8 @@ class Animations(Enum):
 @dataclass
 class LightingData:
     power: bool = False
-    brightness: int = 127
-    effect: Animations = Animations.STEADY
+    brightness: int = 255
+    effect: Animations = Animations.WALKING
 
 LIGHT_EFFECTS = {
     "Steady": Animations.STEADY,

@@ -21,7 +21,7 @@ SENSOR_TIMING_BUDGET = 66000
 # Sensor trip distance (cm)
 SENSOR_TRIP_DISTANCE = 87
 
-## Led Settings
+## Led Section
 
 # Number of leds present in system (must be the same as the number of sensors)
 LED_COUNT = SENSOR_COUNT
@@ -36,6 +36,8 @@ LED_FPS = 240
 
 # MQTT Broker for Home Assistant
 MQTT_SETTINGS = Settings.MQTT(host="homeassistant.lan", username=environ["BROKER_USER"], password=environ["BROKER_PASS"])
+
+MQTT_CONNECTION_TIMEOUT = 4.0
 
 # Home Assistant Device Options
 DEVICE_NAME = "Staircase Lighting"

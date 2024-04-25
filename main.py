@@ -33,6 +33,7 @@ __version__ = "0.1.0"
 class Main:
     def __init__(self) -> None:
         self.sensors = None
+        self.ha_light = None
 
         # Application start time
         startup_time = time.time()
@@ -76,6 +77,12 @@ class Main:
         # Animation thread
         self.animator_thread = threading.Thread(target=self.animator_loop)
         self.animator_thread.start()
+
+        # Set light startup
+        time.sleep(0.1) # Home Assistant needs this small delay
+        self.ha_light.brightness(255)
+        self.ha_light.effect("Walking")
+        self.ha_light.off()
 
         self.fancy_display.display(StatusTypes.LAUNCH, f"Auto-Light version {__version__} is up!")
         self.fancy_display.display(StatusTypes.INFO, f"Startup time: {round(time.time() - startup_time, 2)}s")
@@ -125,11 +132,21 @@ class Main:
             brightness=True,
             color_mode=False,
             effect=True,
-            effect_list=list(LIGHT_EFFECTS.keys()))
+            effect_list=list(LIGHT_EFFECTS.keys())
+        )
 
         ha_light_settings = Settings(mqtt=settings.MQTT_SETTINGS, entity=ha_light_info)
 
         ha_light = Light(ha_light_settings, callback)
+
+        start_connect_time = time.time()
+        while not ha_light.mqtt_client.is_connected():
+            if time.time() - start_connect_time > settings.MQTT_CONNECTION_TIMEOUT:
+                self.fancy_display.display(StatusTypes.FAILURE, "MQTT Client Timeout")
+                sys.exit()
+            time.sleep(0.05)
+
+        self.fancy_display.display(StatusTypes.SUCCESS, "MQTT Client Connected")
 
         return ha_light, ha_light_info
 
