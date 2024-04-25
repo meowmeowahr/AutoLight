@@ -79,9 +79,13 @@ class Main:
 
         # Create Home Assistant Debug Devices
         self.cpu_sensor = None
+        self.mem_sensor = None
         if settings.CREATE_DEBUG_ENTITIES:
             sensor_info = SensorInfo(device=self.device_info, name="CPU Usage", icon="mdi:cpu-64-bit" if is_os_64bit() else "mdi:cpu-32-bit", unit_of_measurement="%", unique_id="cpu")
             self.cpu_sensor = Sensor(Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info))
+
+            sensor_info = SensorInfo(device=self.device_info, name="Memory Usage", icon="mdi:memory", unit_of_measurement="%", unique_id="mem")
+            self.mem_sensor = Sensor(Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info))
 
         # Launch led thread
         self.led_update_thread = threading.Thread(target=self.led_array.update_loop, daemon=True)
@@ -244,4 +248,8 @@ if __name__ == "__main__":
     while True:
         if main.cpu_sensor:
             main.cpu_sensor.set_state(psutil.cpu_percent())
+
+        if main.mem_sensor:
+            main.mem_sensor.set_state(psutil.virtual_memory()[2])
+
         time.sleep(settings.DEBUG_UPDATE_RATE)

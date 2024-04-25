@@ -51,7 +51,7 @@ LIGHT_UID = "light_staircase"
 
 # Home Assistant debugging entities
 CREATE_DEBUG_ENTITIES = True
-DEBUG_UPDATE_RATE = 5.0 # seconds
+DEBUG_UPDATE_RATE = 15.0 # seconds
 
 ## Logging Settings
 
