@@ -30,14 +30,15 @@ LED_COUNT = SENSOR_COUNT
 LED_FREQ = 120
 
 # Lighting frame rate cap
-LED_FPS = 240
+LED_FPS = 120
+LED_OFF_FPS = 24
 
 ## Home Assistant Options
 
 # MQTT Broker for Home Assistant
 MQTT_SETTINGS = Settings.MQTT(host="homeassistant.lan", username=environ["BROKER_USER"], password=environ["BROKER_PASS"])
 
-MQTT_CONNECTION_TIMEOUT = 4.0
+MQTT_CONNECTION_TIMEOUT = 6.0
 
 # Home Assistant Device Options
 DEVICE_NAME = "Staircase Lighting"

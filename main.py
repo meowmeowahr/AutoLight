@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 import sys
@@ -31,7 +32,7 @@ __version__ = "0.1.0"
 
 
 class Main:
-    def __init__(self) -> None:
+    def __init__(self, args) -> None:
         self.sensors = None
         self.ha_light = None
 
@@ -41,7 +42,13 @@ class Main:
         # Visual setup
         if settings.DO_FANCY_TERM_OUT:
             banner()
-        self.fancy_display = FancyDisplay(settings.FANCY_LOGGING_LEVELS if settings.DO_FANCY_TERM_OUT else [])
+
+        if args.verbose:
+            fancy_level = [StatusTypes.ALL]
+        else:
+            fancy_level = settings.FANCY_LOGGING_LEVELS
+
+        self.fancy_display = FancyDisplay(fancy_level if settings.DO_FANCY_TERM_OUT else [])
         atexit.register(self.at_exit)
 
         # Quick sanity checks
@@ -179,6 +186,8 @@ class Main:
 
     def animator_loop(self):
         while True:
+            time.sleep(1 / (settings.LED_FPS if self.lighting_data.power else settings.LED_OFF_FPS))
+            
             if self.lighting_data.power is False:
                 for index in range(len(self.sensor_trips)):
                     self.led_array.set_power_state(index, False)
@@ -191,7 +200,6 @@ class Main:
                     self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
                     self.led_array.set_animation(index, NullAnimation())
 
-            time.sleep(1 / settings.LED_FPS)
 
     def at_exit(self):
         if not self.sensors:
@@ -204,10 +212,20 @@ class Main:
         self.fancy_display.display(StatusTypes.END, "Auto-Light stopped")
 
 if __name__ == "__main__":
+    # CLI Argument Parser
+    parser = argparse.ArgumentParser(
+        prog='Auto-Light',
+        description='Control up to 16 leds with ToF sensors and an additional PIR channel'
+    )
+
+    parser.add_argument("-V", "--verbose", default=False, action='store_true')
+
+    args = parser.parse_args()
+
     # Create logger
     if is_interactive():
-        logging.basicConfig(level=settings.INTERACTIVE_LOG_LEVEL)
+        logging.basicConfig(level=settings.INTERACTIVE_LOG_LEVEL if not args.verbose else logging.DEBUG)
     else:
-        logging.basicConfig(level=settings.REGULAR_LOG_LEVEL)
+        logging.basicConfig(level=settings.REGULAR_LOG_LEVEL if not args.verbose else logging.DEBUG)
 
-    main = Main()    
+    main = Main(args)    
