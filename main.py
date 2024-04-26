@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import math
 import sys
 import threading
 import atexit
@@ -26,7 +27,7 @@ from subsystems.sensors import VL53L0XSensor
 from terminal import banner, FancyDisplay, is_interactive
 from terminal import DisplayStatusTypes as StatusTypes
 
-from utils import surround_list, is_os_64bit
+from utils import surround_list, is_os_64bit, square_wave
 from data_types import LightingData, LIGHT_EFFECTS, Animations
 
 import checks
@@ -213,7 +214,24 @@ class Main:
                     self.led_array.set_power_state(index, value)
                     self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
                     self.led_array.set_animation(index, NullAnimation())
-
+            elif self.lighting_data.effect == Animations.STEADY:
+                for i in range(settings.LED_COUNT):
+                    self.led_array.set_power_state(i, True)
+                    self.led_array.set_brightness(i, self.lighting_data.brightness, PowerUnits.BITS8)
+                    self.led_array.set_animation(i, NullAnimation())
+            elif self.lighting_data.effect == Animations.BLINK:
+                if square_wave(time.time(), settings.BLINK_HZ, 1) == 1:
+                    for index in range(settings.LED_COUNT):
+                        self.led_array.set_power_state(index, True)
+                        self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
+                else:
+                    for index in range(settings.LED_COUNT):
+                        self.led_array.set_power_state(index, False)
+                        self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
+            elif self.lighting_data.effect == Animations.FADE:
+                for index in range(settings.LED_COUNT):
+                    self.led_array.set_power_state(index, True)
+                    self.led_array.set_brightness(index, math.sin(time.time() * settings.FADE_SPEED_MULTIPLIER) * self.lighting_data.brightness, PowerUnits.BITS8)
 
     def at_exit(self):
         if not self.sensors:

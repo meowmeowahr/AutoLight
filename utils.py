@@ -17,3 +17,22 @@ def clamp(n, minn, maxn):
 
 def is_os_64bit():
     return platform.machine().endswith('64')
+
+def square_wave(t, period, amplitude):
+    """Generate square wave
+
+    Args:
+        t (float): X input
+        period (float): Period of square wave
+        amplitude (float): Amplitude of wave
+
+    Returns:
+        float: Y output
+    """
+    # Calculate the remainder when t is divided by T
+    remainder = t % period
+
+    # Determine the value of the square wave based on the remainder
+    if remainder < period / 2:
+        return amplitude
+    return -amplitude

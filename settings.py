@@ -33,6 +33,11 @@ LED_FREQ = 120
 LED_FPS = 120
 LED_OFF_FPS = 24
 
+# Per-animation settings
+BLINK_HZ = 2
+
+FADE_SPEED_MULTIPLIER = 0.5
+
 ## Home Assistant Options
 
 # MQTT Broker for Home Assistant

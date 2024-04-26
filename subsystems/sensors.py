@@ -23,6 +23,7 @@ class NullSensor(BaseSensor):
 class VL53L0XSensor(BaseSensor):
     _address = 0x30
     _warnings = _StartupWarnings.NONE
+    _recovering = False
     def __init__(self, shut_pin: int, root_i2c: board.I2C = board.I2C(), trip_distance: float = 20) -> None:
         self.trip_distance = trip_distance
         self.shut_pin = shut_pin
@@ -37,7 +38,7 @@ class VL53L0XSensor(BaseSensor):
         self._address = VL53L0XSensor._address
         VL53L0XSensor._address += 1
 
-    def begin(self):
+    def begin(self, thread=True):
         if VL53L0XSensor._warnings == _StartupWarnings.ENDED:
             logging.warning("A sensor is starting after this or another sensor has already stopped. This may result in unexpected behavior.")
 
@@ -46,8 +47,9 @@ class VL53L0XSensor(BaseSensor):
         self.device = _VL53L0X(self.root_i2c)
         self.device.start_continuous() # Start device at 0x29
 
-        self._updater_thread = threading.Thread(target=self._update_loop, daemon=True)
-        self._updater_thread.start()
+        if thread:
+            self._updater_thread = threading.Thread(target=self._update_loop, daemon=True)
+            self._updater_thread.start()
 
         # Device will start out as 0x29, this is incremented up from 0x30 for each class
         self.device.set_address(self._address) 
@@ -83,9 +85,25 @@ class VL53L0XSensor(BaseSensor):
 
     def _update_loop(self):
         while True:
-            self.distance = self.device.distance
-            self.tripped = self.distance < self.trip_distance
+            try:
+                try:
+                    self.distance = self.device.distance
+                except OSError as e:
+                    logging.error(f"Failed to read from i2c, {repr(e)}")
+                    self.distance = -1
+                    if not VL53L0XSensor._recovering:
+                        VL53L0XSensor._recovering = True
 
-            time.sleep(0.01)
+                        logging.info(f"Attempting recovery for addr:{self._address}")
+                        self.begin(thread=False)
+
+                        VL53L0XSensor._recovering = False
+                self.tripped = self.distance < self.trip_distance
+
+                time.sleep(0.01)
+            except OSError as e:
+                logging.error(f"Failed to recover i2c, {repr(e)}, retrying...")
+                VL53L0XSensor._recovering = False
+                continue
 
 
