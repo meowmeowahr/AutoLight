@@ -70,6 +70,8 @@ class LedArray:
         self._led_data = [{"power": False, "brightness": 65535, "true_brightness": 0, "effect": _LedPowerOnState.NONE, "animation": NullAnimation()}  for _ in range(settings.led_count)]
         self._fps = settings.fps
 
+        self.raw_brightness = False
+
         self.pca.frequency = settings.freq
 
         logging.info(f"Created new LedArray with settings {settings}")
@@ -121,26 +123,29 @@ class LedArray:
             time.sleep(1 / self._fps)
 
             for index, led in enumerate(self._led_data):
-                if led["effect"] == _LedPowerOnState.FADE_UP:
-                    if int(self._led_data[index]["true_brightness"]) == int(led["brightness"]):
-                        self._led_data[index]["effect"] = _LedPowerOnState.NONE
-                        continue
-                    if self._led_data[index]["true_brightness"] + fade_inc > led["brightness"]:
-                        inc = int(led["brightness"] - self._led_data[index]["true_brightness"])
-                        self._led_data[index]["effect"] = _LedPowerOnState.NONE
-                        continue
-                    else:
-                        inc = fade_inc
-                    self._led_data[index]["true_brightness"] = clamp(self._led_data[index]["true_brightness"] + inc, 0, 65535)
-                elif led["effect"] == _LedPowerOnState.FADE_DOWN:
-                    if self.pca.channels[index].duty_cycle == 0:
-                        self._led_data[index]["effect"] = _LedPowerOnState.NONE
+                if not self.raw_brightness:
+                    if led["effect"] == _LedPowerOnState.FADE_UP:
+                        if int(self._led_data[index]["true_brightness"]) == int(led["brightness"]):
+                            self._led_data[index]["effect"] = _LedPowerOnState.NONE
+                            continue
+                        if self._led_data[index]["true_brightness"] + fade_inc > led["brightness"]:
+                            inc = int(led["brightness"] - self._led_data[index]["true_brightness"])
+                            self._led_data[index]["effect"] = _LedPowerOnState.NONE
+                            continue
+                        else:
+                            inc = fade_inc
+                        self._led_data[index]["true_brightness"] = clamp(self._led_data[index]["true_brightness"] + inc, 0, 65535)
+                    elif led["effect"] == _LedPowerOnState.FADE_DOWN:
+                        if self.pca.channels[index].duty_cycle == 0:
+                            self._led_data[index]["effect"] = _LedPowerOnState.NONE
 
-                    if self.pca.channels[index].duty_cycle < fade_inc:
-                        inc = -self.pca.channels[index].duty_cycle
+                        if self.pca.channels[index].duty_cycle < fade_inc:
+                            inc = -self.pca.channels[index].duty_cycle
+                        else:
+                            inc = -fade_inc
+                        self._led_data[index]["true_brightness"] += inc
                     else:
-                        inc = -fade_inc
-                    self._led_data[index]["true_brightness"] += inc
+                        self._led_data[index]["true_brightness"] = clamp(led["brightness"], 0, 65535) if led["power"] else 0
                 else:
                     self._led_data[index]["true_brightness"] = clamp(led["brightness"], 0, 65535) if led["power"] else 0
 

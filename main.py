@@ -204,22 +204,26 @@ class Main:
             time.sleep(1 / (settings.LED_FPS if self.lighting_data.power else settings.LED_OFF_FPS))
 
             if self.lighting_data.power is False:
+                self.led_array.raw_brightness = False
                 for index in range(len(self.sensor_trips)):
                     self.led_array.set_power_state(index, False)
                 continue
 
             if self.lighting_data.effect == Animations.WALKING:
+                self.led_array.raw_brightness = False
                 powers = surround_list(self.sensor_trips)
                 for index, value in enumerate(powers):
                     self.led_array.set_power_state(index, value)
                     self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
                     self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.STEADY:
+                self.led_array.raw_brightness = False
                 for i in range(settings.LED_COUNT):
                     self.led_array.set_power_state(i, True)
                     self.led_array.set_brightness(i, self.lighting_data.brightness, PowerUnits.BITS8)
                     self.led_array.set_animation(i, NullAnimation())
             elif self.lighting_data.effect == Animations.BLINK:
+                self.led_array.raw_brightness = False
                 if square_wave(time.time(), settings.BLINK_HZ, 1) == 1:
                     for index in range(settings.LED_COUNT):
                         self.led_array.set_power_state(index, True)
@@ -229,6 +233,7 @@ class Main:
                         self.led_array.set_power_state(index, False)
                         self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
             elif self.lighting_data.effect == Animations.FADE:
+                self.led_array.raw_brightness = True
                 for index in range(settings.LED_COUNT):
                     self.led_array.set_power_state(index, True)
                     self.led_array.set_brightness(index, math.sin(time.time() * settings.FADE_SPEED_MULTIPLIER) * self.lighting_data.brightness, PowerUnits.BITS8)
