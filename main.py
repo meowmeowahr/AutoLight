@@ -228,16 +228,18 @@ class Main:
                     for index in range(settings.LED_COUNT):
                         self.led_array.set_power_state(index, True)
                         self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
+                        self.led_array.set_animation(index, NullAnimation())
                 else:
                     for index in range(settings.LED_COUNT):
                         self.led_array.set_power_state(index, False)
                         self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
+                        self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.FADE:
                 self.led_array.raw_brightness = True
                 for index in range(settings.LED_COUNT):
                     self.led_array.set_power_state(index, True)
                     self.led_array.set_brightness(index, math.sin(time.time() * settings.FADE_SPEED_MULTIPLIER) * self.lighting_data.brightness, PowerUnits.BITS8)
-
+                    self.led_array.set_animation(index, NullAnimation())
     def at_exit(self):
         if not self.sensors:
             self.fancy_display.display(StatusTypes.FAILURE, "Auto-Light experienced an error")

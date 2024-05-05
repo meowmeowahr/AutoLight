@@ -19,7 +19,7 @@ SENSOR_XSHUT_PINS = [21]
 SENSOR_TIMING_BUDGET = 66000
 
 # Sensor trip distance (cm)
-SENSOR_TRIP_DISTANCE = 87
+SENSOR_TRIP_DISTANCE = 56
 
 ## Led Section
 
