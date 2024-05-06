@@ -25,7 +25,7 @@ class VL53L0XSensor(BaseSensor):
     _warnings = _StartupWarnings.NONE
     _recovering = False
     def __init__(self, shut_pin: int, root_i2c: board.I2C = board.I2C(), trip_distance: float = 20) -> None:
-        self.trip_distance = trip_distance
+        self._trip_distance = trip_distance
         self.shut_pin = shut_pin
         self.xshut = DigitalOutputDevice(self.shut_pin)
         self.xshut.value = 0
@@ -83,7 +83,7 @@ class VL53L0XSensor(BaseSensor):
             logging.error(f"Could not set timing budget for {self}, device has not yet been initialized")
 
     def set_trip_distance(self, trip_distance: float):
-        self.trip_distance = trip_distance
+        self._trip_distance = trip_distance
 
     def _update_loop(self):
         while True:
@@ -100,9 +100,9 @@ class VL53L0XSensor(BaseSensor):
                         self.begin(thread=False)
 
                         VL53L0XSensor._recovering = False
-                self.tripped = self.distance < self.trip_distance
+                self.tripped = self.distance < self._trip_distance
 
-                time.sleep(0.01)
+                time.sleep(0.02)
             except OSError as e:
                 logging.error(f"Failed to recover i2c, {repr(e)}, retrying...")
                 VL53L0XSensor._recovering = False

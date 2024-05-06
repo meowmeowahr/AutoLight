@@ -199,7 +199,7 @@ class Main:
             # Physical device
             sensors[index].begin()
             sensors[index].set_timing_budget(settings.SENSOR_TIMING_BUDGET)
-            sensors[index].set_trip_distance(settings.PER_SENSOR_CALIBRATIONS[index])
+            sensors[index]._trip_distance = settings.PER_SENSOR_CALIBRATIONS[index]
 
         return sensors, ha_sensors
 
