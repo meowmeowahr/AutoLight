@@ -28,6 +28,7 @@ class VL53L0XSensor(BaseSensor):
         self.trip_distance = trip_distance
         self.shut_pin = shut_pin
         self.xshut = DigitalOutputDevice(self.shut_pin)
+        self.xshut.value = 0
         self.root_i2c = root_i2c
         self.device = None
 
@@ -41,10 +42,11 @@ class VL53L0XSensor(BaseSensor):
     def begin(self, thread=True):
         if VL53L0XSensor._warnings == _StartupWarnings.ENDED:
             logging.warning("A sensor is starting after this or another sensor has already stopped. This may result in unexpected behavior.")
-
+        print(self._address)
         self.xshut.value = 1 # Power on device
-
+        print(self._address, "xs_1")
         self.device = _VL53L0X(self.root_i2c)
+        print(self._address, "start")
         self.device.start_continuous() # Start device at 0x29
 
         if thread:
@@ -53,6 +55,7 @@ class VL53L0XSensor(BaseSensor):
 
         # Device will start out as 0x29, this is incremented up from 0x30 for each class
         self.device.set_address(self._address) 
+        print(self._address, "setaddr")
 
     def end(self):
         if self.device:

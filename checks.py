@@ -6,11 +6,7 @@ from terminal import FancyDisplay, DisplayStatusTypes
 
 def run_sanity(fancy_display: FancyDisplay | None = None):
     passing = True
-    if settings.SENSOR_COUNT != len(settings.SENSOR_XSHUT_PINS):
-        logging.critical(f"Sensor count {settings.SENSOR_COUNT} does not match number of sensor xshut pins {len(settings.SENSOR_XSHUT_PINS)}")
-        passing = False
-
-    if settings.SENSOR_COUNT != settings.LED_COUNT:
+    if settings.SENSOR_COUNT > settings.LED_COUNT:
         logging.critical(f"Led segments {settings.LED_COUNT} does not match number of sensors {settings.SENSOR_COUNT}")
         passing = False
     

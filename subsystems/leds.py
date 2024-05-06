@@ -10,7 +10,9 @@ import adafruit_pca9685
 import atexit
 import enum
 
-from utils import clamp
+#from utils import clamp
+def clamp(n, minn, maxn):
+    return max(min(maxn, n), minn)
 
 class _LedPowerOnState(enum.Enum):
     """Internal use"""
@@ -97,6 +99,9 @@ class LedArray:
         self._led_data[index]["animation"] = animation
 
     def set_power_state(self, index: int, on: bool, fade: bool = True):
+        if self._led_data[index]["power"] == on:
+            return
+
         self._led_data[index]["power"] = on
         if fade:
             if on:
@@ -112,7 +117,7 @@ class LedArray:
             channel.duty_cycle = 0
 
     def update_loop(self):
-        fade_inc = 2500
+        fade_inc = 3000
 
         # Per-animation rngs
         last_rng_bools: list[bool | int] = [0] * len(self._led_data)
@@ -136,7 +141,7 @@ class LedArray:
                             inc = fade_inc
                         self._led_data[index]["true_brightness"] = clamp(self._led_data[index]["true_brightness"] + inc, 0, 65535)
                     elif led["effect"] == _LedPowerOnState.FADE_DOWN:
-                        if self.pca.channels[index].duty_cycle == 0:
+                        if self._led_data[index]["true_brightness"] == 0:
                             self._led_data[index]["effect"] = _LedPowerOnState.NONE
 
                         if self.pca.channels[index].duty_cycle < fade_inc:
@@ -150,7 +155,8 @@ class LedArray:
                     self._led_data[index]["true_brightness"] = clamp(led["brightness"], 0, 65535) if led["power"] else 0
 
                 if isinstance(led["animation"], NullAnimation):
-                    self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
+                    if self._led_data[index]["brightness"] != self._led_data[index]["true_brightness"]:
+                        self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
                 elif isinstance(led["animation"], BlinkAnimation):
                     current_time = loop_time % (led["animation"].on_time + led["animation"].off_time)
                     wave_output = current_time < led["animation"].on_time
@@ -206,13 +212,14 @@ if __name__ == "__main__":
     thread = threading.Thread(target=la.update_loop, daemon=True)
     thread.start()
 
-    la.set_brightness(0, .005)
-    la.set_brightness(1, .005)
+    #la.set_brightness(0, .005)
+    #la.set_brightness(1, .005)
 
-    la.set_power_state(0, True)
-    la.set_power_state(1, True)
-    la.set_animation(0, FadeAnimation(sync=LedSync.SYNC))
-    la.set_animation(1, FadeAnimation(sync=LedSync.SYNC))
+    for i in range(14):
+        la.set_power_state(i, True)
+        #la.set_power_state(i, True)
+        la.set_animation(i, FadeAnimation(sync=LedSync.SYNC))
+        #la.set_animation(1, FadeAnimation(sync=LedSync.SYNC))
 
     while True:
         # la.set_power_state(0, True)

@@ -6,6 +6,7 @@ import sys
 import threading
 import atexit
 import time
+import socket
 
 from ha_mqtt_discoverable import Settings
 from ha_mqtt_discoverable.sensors import (
@@ -59,6 +60,16 @@ class Main:
         # Quick sanity checks
         if not checks.run_sanity(self.fancy_display):
             sys.exit()
+
+        # Network connectivity test
+        network_available = False
+        while not network_available:
+            try:
+                socket.getaddrinfo(settings.MQTT_SETTINGS.host, settings.MQTT_SETTINGS.port)
+                network_available = True
+            except socket.gaierror as e:
+                logging.error(f"Network test failed, retrying, {repr(e)}")
+                time.sleep(1)
 
         # Global lighting state
         self.lighting_data = LightingData()
@@ -176,18 +187,19 @@ class Main:
         sensors: list[VL53L0XSensor] = []
         ha_sensors: list[BinarySensor] = []
 
-        for index, pin in enumerate(settings.SENSOR_XSHUT_PINS):
+        for pin in settings.SENSOR_XSHUT_PINS[:settings.SENSOR_COUNT]:
+            sensors.append(VL53L0XSensor(pin))
+
+        for index, pin in enumerate(settings.SENSOR_XSHUT_PINS[:settings.SENSOR_COUNT]):
             # HA entity
             sensor_info = BinarySensorInfo(name=f"Staircase Segment {index+1}", device_class="motion", unique_id=f"stair_motion_{index}", device=device_info)
             ha_sensor = BinarySensor(Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info))
             ha_sensors.append(ha_sensor)
             
             # Physical device
-            sensor = VL53L0XSensor(pin)
-            sensor.begin()
-            sensor.set_timing_budget(settings.SENSOR_TIMING_BUDGET)
-            sensor.set_trip_distance(settings.SENSOR_TRIP_DISTANCE)
-            sensors.append(sensor)
+            sensors[index].begin()
+            sensors[index].set_timing_budget(settings.SENSOR_TIMING_BUDGET)
+            sensors[index].set_trip_distance(settings.PER_SENSOR_CALIBRATIONS[index])
 
         return sensors, ha_sensors
 
@@ -205,7 +217,7 @@ class Main:
 
             if self.lighting_data.power is False:
                 self.led_array.raw_brightness = False
-                for index in range(len(self.sensor_trips)):
+                for index in range(settings.LED_COUNT):
                     self.led_array.set_power_state(index, False)
                 continue
 

@@ -9,29 +9,29 @@ from terminal import DisplayStatusTypes
 
 # Number of sensors present in the system (must all be on the main i2c bus)
 # SENSOR_COUNT = 15
-SENSOR_COUNT = 1
+SENSOR_COUNT = 4
+
+# Sensor trip distances (cm)
+PER_SENSOR_CALIBRATIONS = [60, 51, 51, 41]
 
 # VL53L0X Shutdown Pins (required)
 #SENSOR_XSHUT_PINS = [21, 15, 18, 23, 24, 25, 8, 7, 12, 16, 20, 14, 4, 17, 27]
-SENSOR_XSHUT_PINS = [21]
+SENSOR_XSHUT_PINS = [21, 20, 7, 8, 16, 12, 25, 24, 23, 18, 14, 15, 26, 19]
 
 # Sensor Timing Budget in microseconds (Higher means better accuracy, but slower read times)
-SENSOR_TIMING_BUDGET = 66000
-
-# Sensor trip distance (cm)
-SENSOR_TRIP_DISTANCE = 56
+SENSOR_TIMING_BUDGET = 72000
 
 ## Led Section
 
 # Number of leds present in system (must be the same as the number of sensors)
-LED_COUNT = SENSOR_COUNT
+LED_COUNT = 14
 
 # Lighting frequency control (usually the higher the better, but required settingss may vary)
 LED_FREQ = 120
 
 # Lighting frame rate cap
-LED_FPS = 120
-LED_OFF_FPS = 24
+LED_FPS = 560
+LED_OFF_FPS = 560
 
 # Per-animation settings
 BLINK_HZ = 2
