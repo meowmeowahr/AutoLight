@@ -21,13 +21,8 @@ class LightingData:
 
 LIGHT_EFFECTS = {
     "Steady": Animations.STEADY,
-    "Steady with Light Sensor": Animations.STEADY_LS,
     "Walking": Animations.WALKING,
-    "Walking with Light Sensor": Animations.WALKING_LS,
     "Flicker": Animations.FLICKER,
-    "Flicker with Light Sensor": Animations.FLCIKER_LS,
     "Blink": Animations.BLINK,
-    "Blink with Light Sensor": Animations.BLINK_LS,
     "Fade": Animations.FADE,
-    "Fade with Light Sensor": Animations.FADE_LS
 }
