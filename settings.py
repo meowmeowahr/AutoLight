@@ -24,7 +24,7 @@ SENSOR_TIMING_BUDGET = 72000
 ## Led Section
 
 # Number of leds present in system (must be the same as the number of sensors)
-LED_COUNT = 14
+LED_COUNT = 4
 
 # Lighting frequency control (usually the higher the better, but required settingss may vary)
 LED_FREQ = 120

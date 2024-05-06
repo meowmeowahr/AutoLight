@@ -22,7 +22,7 @@ from paho.mqtt.client import Client, MQTTMessage
 
 import psutil
 
-from subsystems.leds import LedArray, LedSettings, NullAnimation, PowerUnits
+from subsystems.leds import LedArray, LedSettings, NullAnimation, PowerUnits, FadeAnimation
 from subsystems.sensors import VL53L0XSensor
 
 from terminal import banner, FancyDisplay, is_interactive
@@ -247,11 +247,10 @@ class Main:
                         self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
                         self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.FADE:
-                self.led_array.raw_brightness = True
                 for index in range(settings.LED_COUNT):
                     self.led_array.set_power_state(index, True)
-                    self.led_array.set_brightness(index, math.sin(time.time() * settings.FADE_SPEED_MULTIPLIER) * self.lighting_data.brightness, PowerUnits.BITS8)
-                    self.led_array.set_animation(index, NullAnimation())
+                    self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
+                    self.led_array.set_animation(index, FadeAnimation(settings.FADE_SPEED_MULTIPLIER))
     def at_exit(self):
         if not self.sensors:
             self.fancy_display.display(StatusTypes.FAILURE, "Auto-Light experienced an error")

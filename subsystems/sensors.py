@@ -42,7 +42,6 @@ class VL53L0XSensor(BaseSensor):
     def begin(self, thread=True):
         if VL53L0XSensor._warnings == _StartupWarnings.ENDED:
             logging.warning("A sensor is starting after this or another sensor has already stopped. This may result in unexpected behavior.")
-        print(self._address)
         self.xshut.value = 1 # Power on device
         print(self._address, "xs_1")
         self.device = _VL53L0X(self.root_i2c)
