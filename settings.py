@@ -8,14 +8,12 @@ from terminal import DisplayStatusTypes
 ## Sensor Section
 
 # Number of sensors present in the system (must all be on the main i2c bus)
-# SENSOR_COUNT = 15
 SENSOR_COUNT = 4
 
 # Sensor trip distances (cm)
 PER_SENSOR_CALIBRATIONS = [60, 51, 51, 41]
 
 # VL53L0X Shutdown Pins (required)
-#SENSOR_XSHUT_PINS = [21, 15, 18, 23, 24, 25, 8, 7, 12, 16, 20, 14, 4, 17, 27]
 SENSOR_XSHUT_PINS = [21, 20, 7, 8, 16, 12, 25, 24, 23, 18, 14, 15, 26, 19]
 
 # Sensor Timing Budget in microseconds (Higher means better accuracy, but slower read times)
@@ -33,9 +31,12 @@ LED_FREQ = 120
 LED_FPS = 560
 LED_OFF_FPS = 560
 
-# Per-animation settings
+## Per-animation settings
+
+# Speed for Blink Animation
 BLINK_HZ = 2
 
+# Speed for Fade Animation
 FADE_SPEED_MULTIPLIER = 0.75
 
 ## Home Assistant Options
@@ -43,6 +44,7 @@ FADE_SPEED_MULTIPLIER = 0.75
 # MQTT Broker for Home Assistant
 MQTT_SETTINGS = Settings.MQTT(host="homeassistant.lan", username=environ["BROKER_USER"], password=environ["BROKER_PASS"])
 
+# Maximum time for MQTT to connect
 MQTT_CONNECTION_TIMEOUT = 6.0
 
 # Home Assistant Device Options
