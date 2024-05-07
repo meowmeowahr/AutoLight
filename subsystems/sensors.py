@@ -20,6 +20,7 @@ class NullSensor(BaseSensor):
         self.value = constant_value
         self.distance = trip_distance if constant_value else 999
 
+
 class VL53L0XSensor(BaseSensor):
     _address = 0x30
     _warnings = _StartupWarnings.NONE
@@ -76,14 +77,27 @@ class VL53L0XSensor(BaseSensor):
         else:
             logging.warning(f"Could not stop sensor for {self}, device has not yet been initialized")
 
-    def set_timing_budget(self, budget: int):
+    @property
+    def timing_budget(self):
+        if self.device:
+            return self.device.measurement_timing_budget
+        else:
+            logging.error(f"Could not get timing budget for {self}, device has not yet been initialized")
+
+    @timing_budget.setter
+    def timing_budget(self, budget: int):
         if self.device:
             self.device.measurement_timing_budget = budget
         else:
-            logging.error(f"Could not set timing budget for {self}, device has not yet been initialized")
+            logging.error(f"Could not get timing budget for {self}, device has not yet been initialized")
 
-    def set_trip_distance(self, trip_distance: float):
-        self._trip_distance = trip_distance
+    @property
+    def trip_distance(self):
+        return self._trip_distance
+
+    @trip_distance.setter
+    def trip_distance(self, value: float):
+        self._trip_distance = value
 
     def _update_loop(self):
         while True:

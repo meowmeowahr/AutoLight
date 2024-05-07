@@ -42,7 +42,7 @@ FADE_SPEED_MULTIPLIER = 0.75
 ## Home Assistant Options
 
 # MQTT Broker for Home Assistant
-MQTT_SETTINGS = Settings.MQTT(host="homeassistant.lan", username=environ["BROKER_USER"], password=environ["BROKER_PASS"])
+MQTT_SETTINGS = Settings.MQTT(host="homeassistant.local", username=environ["BROKER_USER"], password=environ["BROKER_PASS"])
 
 # Maximum time for MQTT to connect
 MQTT_CONNECTION_TIMEOUT = 6.0

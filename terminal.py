@@ -27,8 +27,8 @@ class DisplayStatusTypes(Enum):
     ALL = enum_auto()
 
 DEFAULT_ICON_MAP = {
-    DisplayStatusTypes.LAUNCH: "🚀",
-    DisplayStatusTypes.SUCCESS: "✔",
+    DisplayStatusTypes.LAUNCH: "★",
+    DisplayStatusTypes.SUCCESS: "✓",
     DisplayStatusTypes.FAILURE: "🗙",
     DisplayStatusTypes.END: "🛑",
     DisplayStatusTypes.INFO: "❖"
