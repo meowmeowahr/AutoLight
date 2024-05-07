@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import logging
 import math
 import random
 import threading
@@ -9,6 +8,8 @@ import busio
 import adafruit_pca9685
 import atexit
 import enum
+
+import structlog
 
 #from utils import clamp
 def clamp(n, minn, maxn):
@@ -62,6 +63,8 @@ class LedSettings:
 class LedArray:
     """Array of PCA9685-Driven monochromatic leds starting at index 0"""
     def __init__(self, settings: LedSettings = LedSettings()) -> None:
+        self.logger = structlog.get_logger()
+
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.pca = adafruit_pca9685.PCA9685(self.i2c)
         self.pca.reset()
@@ -76,7 +79,7 @@ class LedArray:
 
         self.pca.frequency = settings.freq
 
-        logging.info(f"Created new LedArray with settings {settings}")
+        self.logger.info(f"Created new LedArray with settings {settings}")
 
     def set_freq(self, freq: int):
         self.pca.frequency = freq
@@ -112,7 +115,7 @@ class LedArray:
             self._led_data[index]["effect"] = _LedPowerOnState.NONE
 
     def end(self):
-        logging.info(f"Ended {self}")
+        self.logger.info(f"Ended {self}")
         for channel in self.pca.channels:
             channel.duty_cycle = 0
 
@@ -205,8 +208,6 @@ class LedArray:
                         raise NotImplementedError(f"Sync mode {led['animation'].sync} is not implemented")
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-
     la = LedArray()
 
     thread = threading.Thread(target=la.update_loop, daemon=True)

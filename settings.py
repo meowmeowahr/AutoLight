@@ -1,9 +1,7 @@
-from logging import WARNING
+from logging import INFO, DEBUG
 from os import environ
 
 from ha_mqtt_discoverable import Settings
-
-from terminal import DisplayStatusTypes
 
 ## Sensor Section
 
@@ -63,9 +61,7 @@ DEBUG_UPDATE_RATE = 15.0 # seconds
 ## Logging Settings
 
 # Logging
-INTERACTIVE_LOG_LEVEL = WARNING # Logging level for use in an interactive terminal
-REGULAR_LOG_LEVEL = WARNING # Logging level for non-interactive shell
+INTERACTIVE_LOG_LEVEL = DEBUG # Logging level for use in an interactive terminal
+REGULAR_LOG_LEVEL = INFO # Logging level for non-interactive shell
 
-# Fancy Terminal Output
-DO_FANCY_TERM_OUT = True
-FANCY_LOGGING_LEVELS = [DisplayStatusTypes.ALL]
+DO_BANNER = True
