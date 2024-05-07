@@ -9,6 +9,10 @@ def run_sanity(fancy_display: FancyDisplay | None = None):
     if settings.SENSOR_COUNT > settings.LED_COUNT:
         logging.critical(f"Led segments {settings.LED_COUNT} does not match number of sensors {settings.SENSOR_COUNT}")
         passing = False
+
+    if settings.SENSOR_COUNT != len(settings.PER_SENSOR_CALIBRATIONS):
+        logging.critical(f"Led segments {settings.LED_COUNT} does not match number of sensors {settings.SENSOR_COUNT}")
+        passing = False
     
     if not fancy_display:
         return passing
