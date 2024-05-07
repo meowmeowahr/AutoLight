@@ -27,6 +27,7 @@ from paho.mqtt.client import Client, MQTTMessage
 import psutil
 
 import structlog
+from rich.traceback import install as traceback_install
 
 from subsystems.leds import (
     LedArray,
@@ -340,6 +341,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Create logger
+    traceback_install(show_locals=False)
+
     if is_interactive():
         log_level = settings.INTERACTIVE_LOG_LEVEL if not args.verbose else logging.DEBUG
     else:

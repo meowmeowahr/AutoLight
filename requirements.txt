@@ -6,3 +6,4 @@ adafruit-circuitpython-vl53l0x
 numpy
 psutil
 structlog
+rich
