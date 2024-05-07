@@ -1,7 +1,11 @@
+"""
+Auto-Light
+Raspberry Pi controlled VL53L0X activated lights via PCA9685
+"""
+
 import argparse
 import json
 import logging
-import math
 import sys
 import threading
 import atexit
@@ -22,7 +26,13 @@ from paho.mqtt.client import Client, MQTTMessage
 
 import psutil
 
-from subsystems.leds import LedArray, LedSettings, NullAnimation, PowerUnits, FadeAnimation
+from subsystems.leds import (
+    LedArray,
+    LedSettings,
+    NullAnimation,
+    PowerUnits,
+    FadeAnimation,
+)
 from subsystems.sensors import VL53L0XSensor
 
 from terminal import banner, FancyDisplay, is_interactive
@@ -54,7 +64,9 @@ class Main:
         else:
             fancy_level = settings.FANCY_LOGGING_LEVELS
 
-        self.fancy_display = FancyDisplay(fancy_level if settings.DO_FANCY_TERM_OUT else [])
+        self.fancy_display = FancyDisplay(
+            fancy_level if settings.DO_FANCY_TERM_OUT else []
+        )
         atexit.register(self.at_exit)
 
         # Quick sanity checks
@@ -65,7 +77,9 @@ class Main:
         network_available = False
         while not network_available:
             try:
-                socket.getaddrinfo(settings.MQTT_SETTINGS.host, settings.MQTT_SETTINGS.port)
+                socket.getaddrinfo(
+                    settings.MQTT_SETTINGS.host, settings.MQTT_SETTINGS.port
+                )
                 network_available = True
             except socket.gaierror as e:
                 logging.error(f"Network test failed, retrying, {repr(e)}")
@@ -75,32 +89,65 @@ class Main:
         self.lighting_data = LightingData()
 
         # Home Assistant Device Class
-        self.device_info = DeviceInfo(name=settings.DEVICE_NAME, identifiers=settings.DEVICE_ID)
+        self.device_info = DeviceInfo(
+            name=settings.DEVICE_NAME, identifiers=settings.DEVICE_ID
+        )
 
         # Create physical and Home Assistant sensors
         self.sensors, self.ha_sensors = self.create_sensors(self.device_info)
-        self.fancy_display.display(StatusTypes.SUCCESS, f"Initialized {settings.SENSOR_COUNT} sensors of type {type(self.sensors[0]).__name__}")
+        self.fancy_display.display(
+            StatusTypes.SUCCESS,
+            f"Initialized {settings.SENSOR_COUNT} sensors of type {type(self.sensors[0]).__name__}",
+        )
         self.sensor_trips = [[]] * settings.SENSOR_COUNT
 
         # Physical led outputs
-        self.led_array = LedArray(LedSettings(led_count=settings.LED_COUNT, freq=settings.LED_FREQ, fps=settings.LED_FPS))
-        self.fancy_display.display(StatusTypes.SUCCESS, f"Initialized {settings.LED_COUNT} leds over PCA")
+        self.led_array = LedArray(
+            LedSettings(
+                led_count=settings.LED_COUNT,
+                freq=settings.LED_FREQ,
+                fps=settings.LED_FPS,
+            )
+        )
+        self.fancy_display.display(
+            StatusTypes.SUCCESS, f"Initialized {settings.LED_COUNT} leds over PCA"
+        )
 
         # Create Home Assistant Light
-        self.ha_light, self.ha_light_info = self.create_ha_light(self.ha_light_callback, self.device_info)
+        self.ha_light, self.ha_light_info = self.create_ha_light(
+            self.ha_light_callback, self.device_info
+        )
 
         # Create Home Assistant Debug Devices
         self.cpu_sensor = None
         self.mem_sensor = None
         if settings.CREATE_DEBUG_ENTITIES:
-            sensor_info = SensorInfo(device=self.device_info, name="CPU Usage", icon="mdi:cpu-64-bit" if is_os_64bit() else "mdi:cpu-32-bit", unit_of_measurement="%", unique_id="cpu")
-            self.cpu_sensor = Sensor(Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info))
+            sensor_info = SensorInfo(
+                device=self.device_info,
+                name="CPU Usage",
+                icon="mdi:cpu-64-bit" if is_os_64bit() else "mdi:cpu-32-bit",
+                unit_of_measurement="%",
+                unique_id="cpu",
+            )
+            self.cpu_sensor = Sensor(
+                Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info)
+            )
 
-            sensor_info = SensorInfo(device=self.device_info, name="Memory Usage", icon="mdi:memory", unit_of_measurement="%", unique_id="mem")
-            self.mem_sensor = Sensor(Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info))
+            sensor_info = SensorInfo(
+                device=self.device_info,
+                name="Memory Usage",
+                icon="mdi:memory",
+                unit_of_measurement="%",
+                unique_id="mem",
+            )
+            self.mem_sensor = Sensor(
+                Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info)
+            )
 
         # Launch led thread
-        self.led_update_thread = threading.Thread(target=self.led_array.update_loop, daemon=True)
+        self.led_update_thread = threading.Thread(
+            target=self.led_array.update_loop, daemon=True
+        )
         self.led_update_thread.start()
 
         # Sensor thread
@@ -112,13 +159,17 @@ class Main:
         self.animator_thread.start()
 
         # Set light startup
-        time.sleep(0.1) # Home Assistant needs this small delay
+        time.sleep(0.1)  # Home Assistant needs this small delay
         self.ha_light.brightness(255)
         self.ha_light.effect("Walking")
         self.ha_light.on()
 
-        self.fancy_display.display(StatusTypes.LAUNCH, f"Auto-Light version {__version__} is up!")
-        self.fancy_display.display(StatusTypes.INFO, f"Startup time: {round(time.time() - startup_time, 2)}s")
+        self.fancy_display.display(
+            StatusTypes.LAUNCH, f"Auto-Light version {__version__} is up!"
+        )
+        self.fancy_display.display(
+            StatusTypes.INFO, f"Startup time: {round(time.time() - startup_time, 2)}s"
+        )
 
     def ha_light_callback(self, client: Client, user_data, message: MQTTMessage):
         if not self.ha_light:
@@ -165,7 +216,7 @@ class Main:
             brightness=True,
             color_mode=False,
             effect=True,
-            effect_list=list(LIGHT_EFFECTS.keys())
+            effect_list=list(LIGHT_EFFECTS.keys()),
         )
 
         ha_light_settings = Settings(mqtt=settings.MQTT_SETTINGS, entity=ha_light_info)
@@ -187,15 +238,24 @@ class Main:
         sensors: list[VL53L0XSensor] = []
         ha_sensors: list[BinarySensor] = []
 
-        for pin in settings.SENSOR_XSHUT_PINS[:settings.SENSOR_COUNT]:
+        for pin in settings.SENSOR_XSHUT_PINS[: settings.SENSOR_COUNT]:
             sensors.append(VL53L0XSensor(pin))
 
-        for index, pin in enumerate(settings.SENSOR_XSHUT_PINS[:settings.SENSOR_COUNT]):
+        for index, pin in enumerate(
+            settings.SENSOR_XSHUT_PINS[: settings.SENSOR_COUNT]
+        ):
             # HA entity
-            sensor_info = BinarySensorInfo(name=f"Staircase Segment {index+1}", device_class="motion", unique_id=f"stair_motion_{index}", device=device_info)
-            ha_sensor = BinarySensor(Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info))
+            sensor_info = BinarySensorInfo(
+                name=f"Staircase Segment {index+1}",
+                device_class="motion",
+                unique_id=f"stair_motion_{index}",
+                device=device_info,
+            )
+            ha_sensor = BinarySensor(
+                Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info)
+            )
             ha_sensors.append(ha_sensor)
-            
+
             # Physical device
             sensors[index].begin()
             sensors[index].timing_budget = settings.SENSOR_TIMING_BUDGET
@@ -213,7 +273,14 @@ class Main:
 
     def animator_loop(self):
         while True:
-            time.sleep(1 / (settings.LED_FPS if self.lighting_data.power else settings.LED_OFF_FPS))
+            time.sleep(
+                1
+                / (
+                    settings.LED_FPS
+                    if self.lighting_data.power
+                    else settings.LED_OFF_FPS
+                )
+            )
 
             if self.lighting_data.power is False:
                 self.led_array.raw_brightness = False
@@ -226,57 +293,77 @@ class Main:
                 powers = surround_list(self.sensor_trips)
                 for index, value in enumerate(powers):
                     self.led_array.set_power_state(index, value)
-                    self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
+                    self.led_array.set_brightness(
+                        index, self.lighting_data.brightness, PowerUnits.BITS8
+                    )
                     self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.STEADY:
                 self.led_array.raw_brightness = False
                 for i in range(settings.LED_COUNT):
                     self.led_array.set_power_state(i, True)
-                    self.led_array.set_brightness(i, self.lighting_data.brightness, PowerUnits.BITS8)
+                    self.led_array.set_brightness(
+                        i, self.lighting_data.brightness, PowerUnits.BITS8
+                    )
                     self.led_array.set_animation(i, NullAnimation())
             elif self.lighting_data.effect == Animations.BLINK:
                 self.led_array.raw_brightness = False
                 if square_wave(time.time(), settings.BLINK_HZ, 1) == 1:
                     for index in range(settings.LED_COUNT):
                         self.led_array.set_power_state(index, True)
-                        self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
+                        self.led_array.set_brightness(
+                            index, self.lighting_data.brightness, PowerUnits.BITS8
+                        )
                         self.led_array.set_animation(index, NullAnimation())
                 else:
                     for index in range(settings.LED_COUNT):
                         self.led_array.set_power_state(index, False)
-                        self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
+                        self.led_array.set_brightness(
+                            index, self.lighting_data.brightness, PowerUnits.BITS8
+                        )
                         self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.FADE:
                 for index in range(settings.LED_COUNT):
                     self.led_array.set_power_state(index, True)
-                    self.led_array.set_brightness(index, self.lighting_data.brightness, PowerUnits.BITS8)
-                    self.led_array.set_animation(index, FadeAnimation(settings.FADE_SPEED_MULTIPLIER))
+                    self.led_array.set_brightness(
+                        index, self.lighting_data.brightness, PowerUnits.BITS8
+                    )
+                    self.led_array.set_animation(
+                        index, FadeAnimation(settings.FADE_SPEED_MULTIPLIER)
+                    )
+
     def at_exit(self):
         if not self.sensors:
-            self.fancy_display.display(StatusTypes.FAILURE, "Auto-Light experienced an error")
+            self.fancy_display.display(
+                StatusTypes.FAILURE, "Auto-Light experienced an error"
+            )
             return
 
         for sensor in self.sensors:
             sensor.end()
-        
+
         self.fancy_display.display(StatusTypes.END, "Auto-Light stopped")
+
 
 if __name__ == "__main__":
     # CLI Argument Parser
     parser = argparse.ArgumentParser(
-        prog='Auto-Light',
-        description='Control up to 16 leds with ToF sensors and an additional PIR channel'
+        prog="Auto-Light",
+        description="Control up to 16 leds with ToF sensors and an additional PIR channel",
     )
 
-    parser.add_argument("-V", "--verbose", default=False, action='store_true')
+    parser.add_argument("-V", "--verbose", default=False, action="store_true")
 
     args = parser.parse_args()
 
     # Create logger
     if is_interactive():
-        logging.basicConfig(level=settings.INTERACTIVE_LOG_LEVEL if not args.verbose else logging.DEBUG)
+        logging.basicConfig(
+            level=settings.INTERACTIVE_LOG_LEVEL if not args.verbose else logging.DEBUG
+        )
     else:
-        logging.basicConfig(level=settings.REGULAR_LOG_LEVEL if not args.verbose else logging.DEBUG)
+        logging.basicConfig(
+            level=settings.REGULAR_LOG_LEVEL if not args.verbose else logging.DEBUG
+        )
 
     main = Main(args)
 
