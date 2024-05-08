@@ -9,7 +9,7 @@ def run_sanity(logger: structlog.BoundLogger | None = None):
         passing = False
 
     if settings.SENSOR_COUNT != len(settings.PER_SENSOR_CALIBRATIONS):
-        logger.critical(f"Led segments {settings.LED_COUNT} does not match number of sensors {settings.SENSOR_COUNT}")
+        logger.critical(f"Sensorcount {settings.SENSOR_COUNT} does not match number of calibrations {len(settings.PER_SENSOR_CALIBRATIONS)}")
         passing = False
     
     if not logger:

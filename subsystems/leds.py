@@ -11,9 +11,7 @@ import enum
 
 import structlog
 
-#from utils import clamp
-def clamp(n, minn, maxn):
-    return max(min(maxn, n), minn)
+from utils import clamp
 
 class _LedPowerOnState(enum.Enum):
     """Internal use"""

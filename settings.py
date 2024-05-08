@@ -6,10 +6,10 @@ from ha_mqtt_discoverable import Settings
 ## Sensor Section
 
 # Number of sensors present in the system (must all be on the main i2c bus)
-SENSOR_COUNT = 5
+SENSOR_COUNT = 6
 
 # Sensor trip distances (cm)
-PER_SENSOR_CALIBRATIONS = [60, 51, 51, 43.5, 60]
+PER_SENSOR_CALIBRATIONS = [60, 51, 51, 43.5, 60, 55]
 
 # VL53L0X Shutdown Pins (required)
 SENSOR_XSHUT_PINS = [21, 20, 7, 8, 25, 24, 16, 12, 23, 18, 14, 15, 26, 19]
@@ -20,7 +20,7 @@ SENSOR_TIMING_BUDGET = 72000
 ## Led Section
 
 # Number of leds present in system (must be the same as the number of sensors)
-LED_COUNT = 5
+LED_COUNT = 6
 
 # Lighting frequency control (usually the higher the better, but required settingss may vary)
 LED_FREQ = 120
