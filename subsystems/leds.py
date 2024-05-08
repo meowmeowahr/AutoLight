@@ -9,7 +9,7 @@ import adafruit_pca9685
 import atexit
 import enum
 
-import structlog
+from loguru import logger
 
 from utils import clamp
 
@@ -61,8 +61,6 @@ class LedSettings:
 class LedArray:
     """Array of PCA9685-Driven monochromatic leds starting at index 0"""
     def __init__(self, settings: LedSettings = LedSettings()) -> None:
-        self.logger = structlog.get_logger()
-
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.pca = adafruit_pca9685.PCA9685(self.i2c)
         self.pca.reset()
@@ -77,7 +75,7 @@ class LedArray:
 
         self.pca.frequency = settings.freq
 
-        self.logger.info(f"Created new LedArray with settings {settings}")
+        logger.info(f"Created new LedArray with settings {settings}")
 
     def set_freq(self, freq: int):
         self.pca.frequency = freq
@@ -113,7 +111,7 @@ class LedArray:
             self._led_data[index]["effect"] = _LedPowerOnState.NONE
 
     def end(self):
-        self.logger.info(f"Ended {self}")
+        logger.info(f"Ended {self}")
         for channel in self.pca.channels:
             channel.duty_cycle = 0
 
@@ -149,7 +147,7 @@ class LedArray:
                             inc = -self.pca.channels[index].duty_cycle
                         else:
                             inc = -fade_inc
-                        self._led_data[index]["true_brightness"] += inc
+                        self._led_data[index]["true_brightness"] = clamp(self._led_data[index]["true_brightness"] + inc, 0, 65535)
                     else:
                         self._led_data[index]["true_brightness"] = clamp(led["brightness"], 0, 65535) if led["power"] else 0
                 else:

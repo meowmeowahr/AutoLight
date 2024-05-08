@@ -26,7 +26,7 @@ from paho.mqtt.client import Client, MQTTMessage
 
 import psutil
 
-import structlog
+from loguru import logger
 from rich.traceback import install as traceback_install
 
 from subsystems.leds import (
@@ -61,12 +61,10 @@ class Main:
         if settings.DO_BANNER:
             banner()
 
-        self.logger: structlog.BoundLogger = structlog.get_logger()
-
         atexit.register(self.at_exit)
 
         # Quick sanity checks
-        if not checks.run_sanity(self.logger):
+        if not checks.run_sanity():
             sys.exit()
 
         # Network connectivity test
@@ -78,7 +76,7 @@ class Main:
                 )
                 network_available = True
             except socket.gaierror as e:
-                self.logger.error(f"Network test failed, retrying, {repr(e)}")
+                logger.error(f"Network test failed, retrying, {repr(e)}")
                 time.sleep(1)
 
         # Global lighting state
@@ -91,7 +89,7 @@ class Main:
 
         # Create physical and Home Assistant sensors
         self.sensors, self.ha_sensors = self.create_sensors(self.device_info)
-        self.logger.info(f"Initialized {settings.SENSOR_COUNT} sensors of type {type(self.sensors[0]).__name__}")
+        logger.info(f"Initialized {settings.SENSOR_COUNT} sensors of type {type(self.sensors[0]).__name__}")
         self.sensor_trips = [[]] * settings.SENSOR_COUNT
 
         # Physical led outputs
@@ -102,7 +100,7 @@ class Main:
                 fps=settings.LED_FPS,
             )
         )
-        self.logger.info(f"Initialized {settings.LED_COUNT} leds over PCA")
+        logger.info(f"Initialized {settings.LED_COUNT} leds over PCA")
 
         # Create Home Assistant Light
         self.ha_light, self.ha_light_info = self.create_ha_light(
@@ -155,16 +153,16 @@ class Main:
         self.ha_light.effect("Walking")
         self.ha_light.on()
 
-        self.logger.info(f"Auto-Light version {__version__} is up!")
-        self.logger.info(f"Startup time: {round(time.time() - startup_time, 2)}s")
+        logger.success(f"Auto-Light version {__version__} is up!")
+        logger.info(f"Startup time: {round(time.time() - startup_time, 2)}s")
 
     def ha_light_callback(self, client: Client, user_data, message: MQTTMessage):
         if not self.ha_light:
-            self.logger.error("Callback was called without an existing ha_light")
+            logger.error("Callback was called without an existing ha_light")
             return
 
         if not self.ha_light_info:
-            self.logger.error("Callback was called without an existing ha_light_info")
+            logger.error("Callback was called without an existing ha_light_info")
             return
 
         # Make sure received payload is json
@@ -191,7 +189,7 @@ class Main:
                 self.ha_light.off()
             return
 
-        self.logger.warning(f"Unknown light payload: {payload}")
+        logger.warning(f"Unknown light payload: {payload}")
 
     def create_ha_light(self, callback, device_info):
         # Information about the light
@@ -213,11 +211,11 @@ class Main:
         start_connect_time = time.time()
         while not ha_light.mqtt_client.is_connected():
             if time.time() - start_connect_time > settings.MQTT_CONNECTION_TIMEOUT:
-                self.logger.critical("MQTT Client Timeout")
+                logger.critical("MQTT Client Timeout")
                 sys.exit()
             time.sleep(0.05)
 
-        self.logger.info("MQTT Client Connected")
+        logger.success("MQTT Client Connected")
 
         return ha_light, ha_light_info
 
@@ -320,13 +318,13 @@ class Main:
 
     def at_exit(self):
         if not self.sensors:
-            self.logger.error("Auto-Light experienced an error")
+            logger.error("Auto-Light experienced an error")
             return
 
         for sensor in self.sensors:
             sensor.end()
 
-        self.logger.info("Auto-Light stopped")
+        logger.info("Auto-Light stopped")
 
 
 if __name__ == "__main__":
@@ -346,22 +344,7 @@ if __name__ == "__main__":
     if is_interactive():
         log_level = settings.INTERACTIVE_LOG_LEVEL if not args.verbose else logging.DEBUG
     else:
-        log_level = settings.REGULAR_LOG_LEVEL if not args.verbose else logging.DEBUG
-
-    structlog.configure(
-        processors=[
-            structlog.contextvars.merge_contextvars,
-            structlog.processors.add_log_level,
-            structlog.processors.StackInfoRenderer(),
-            structlog.dev.set_exc_info,
-            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-            structlog.dev.ConsoleRenderer()
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(log_level),
-        context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
-        cache_logger_on_first_use=False,
-    )
+        log_level = settings.REGULAR_LOG_LEVEL if not args.verbose else logging.DEBU
 
     main = Main(args)
 

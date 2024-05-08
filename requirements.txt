@@ -5,6 +5,6 @@ adafruit-circuitpython-pca9685~=3.4.15
 adafruit-circuitpython-vl53l0x~=3.6.11
 numpy~=1.26.4
 psutil~=5.9.8
-structlog~=24.1.0
+loguru~=0.7.2
 rich~=13.7.1
 smbus~=1.1.post2

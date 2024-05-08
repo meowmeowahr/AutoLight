@@ -1,8 +1,8 @@
-import structlog
+from loguru import logger
 
 import settings
 
-def run_sanity(logger: structlog.BoundLogger | None = None):
+def run_sanity():
     passing = True
     if settings.SENSOR_COUNT > settings.LED_COUNT:
         logger.critical(f"Led segments {settings.LED_COUNT} does not match number of sensors {settings.SENSOR_COUNT}")
@@ -12,11 +12,8 @@ def run_sanity(logger: structlog.BoundLogger | None = None):
         logger.critical(f"Sensorcount {settings.SENSOR_COUNT} does not match number of calibrations {len(settings.PER_SENSOR_CALIBRATIONS)}")
         passing = False
     
-    if not logger:
-        return passing
-    
     if passing:
-        logger.info("All sanity checks passed")
+        logger.success("All sanity checks passed")
     else:
         logger.critical("Sanity checks failed. Please check logs for more information")
     
