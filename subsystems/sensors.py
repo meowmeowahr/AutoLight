@@ -10,6 +10,8 @@ import board
 
 from enum import Enum
 
+from subsystems.i2c import list_devices as _list_i2c_devices
+
 class _StartupWarnings(Enum):
     NONE = 0
     ENDED = 1
@@ -27,6 +29,7 @@ class VL53L0XSensor(BaseSensor):
     _address = 0x30
     _warnings = _StartupWarnings.NONE
     _recovering = False
+    _all_classes: list[BaseSensor] = []
     def __init__(self, shut_pin: int, root_i2c: board.I2C = board.I2C(), trip_distance: float = 20) -> None:
         self.logger = structlog.get_logger()
 
@@ -43,6 +46,7 @@ class VL53L0XSensor(BaseSensor):
 
         self._address = VL53L0XSensor._address
         VL53L0XSensor._address += 1
+        VL53L0XSensor._all_classes.append(self)
 
     def begin(self, thread=True):
         if VL53L0XSensor._warnings == _StartupWarnings.ENDED:
@@ -110,18 +114,31 @@ class VL53L0XSensor(BaseSensor):
                     self.distance = self.device.distance
                 except OSError as e:
                     self.logger.error(f"Failed to read from i2c, {repr(e)}")
+                    time.sleep(0.5)
                     self.distance = -1
+
+                    if 0x29 not in _list_i2c_devices():
+                        self.logger.warning("Address 0x29 not found, skipping recovery for now")
+                        continue
+
                     if not VL53L0XSensor._recovering:
                         VL53L0XSensor._recovering = True
 
                         self.logger.info(f"Attempting recovery for addr:{self._address}")
-                        self.begin(thread=False)
+
+                        # Power off all devices
+                        for obj in VL53L0XSensor._all_classes:
+                            obj.xshut.value = 0
+
+                        # Reinitialize all devices
+                        for obj in VL53L0XSensor._all_classes:
+                            obj.begin(thread=False)
 
                         VL53L0XSensor._recovering = False
                 self.tripped = self.distance < self._trip_distance
 
                 time.sleep(0.02)
-            except OSError as e:
+            except (OSError, RuntimeError) as e:
                 self.logger.error(f"Failed to recover i2c, {repr(e)}, retrying...")
                 VL53L0XSensor._recovering = False
                 continue
