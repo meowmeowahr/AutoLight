@@ -11,6 +11,7 @@ import threading
 import atexit
 import time
 import socket
+import platform
 
 from ha_mqtt_discoverable import Settings
 from ha_mqtt_discoverable.sensors import (
@@ -331,20 +332,30 @@ if __name__ == "__main__":
     # CLI Argument Parser
     parser = argparse.ArgumentParser(
         prog="Auto-Light",
-        description="Control up to 16 leds with ToF sensors and an additional PIR channel",
+        description="Control up to 16 leds with ToF sensors and additional GPIO channels",
     )
 
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}, using Python {platform.python_version()}')
+
     parser.add_argument("-V", "--verbose", default=False, action="store_true")
+    parser.add_argument("-Vt", "--trace", default=False, action="store_true")
 
     args = parser.parse_args()
 
     # Create logger
     traceback_install(show_locals=False)
 
-    if is_interactive():
-        log_level = settings.INTERACTIVE_LOG_LEVEL if not args.verbose else logging.DEBUG
+    if args.trace:
+        log_level = 0
+    elif args.verbose:
+        log_level = logging.DEBUG
+    elif is_interactive():
+        log_level = settings.INTERACTIVE_LOG_LEVEL
     else:
-        log_level = settings.REGULAR_LOG_LEVEL if not args.verbose else logging.DEBU
+        log_level = settings.REGULAR_LOG_LEVEL
+
+    logger.remove()
+    logger.add(sys.stderr, level=log_level)
 
     main = Main(args)
 

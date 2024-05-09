@@ -27,6 +27,8 @@ class NullSensor(BaseSensor):
 
 class VL53L0XSensor(BaseSensor):
     _address = 0x30
+    _initial_address = 0x29
+    _address_range = 0x30
     _warnings = _StartupWarnings.NONE
     _recovering = False
     _all_classes: list[BaseSensor] = []
@@ -47,12 +49,13 @@ class VL53L0XSensor(BaseSensor):
         VL53L0XSensor._address += 1
         VL53L0XSensor._all_classes.append(self)
 
+        logger.trace(f"Created a new class of VL53L0XSensor, using future address 0x{self._address:x}")
     def begin(self, thread=True):
         if VL53L0XSensor._warnings == _StartupWarnings.ENDED:
             logger.warning("A sensor is starting after this or another sensor has already stopped. This may result in unexpected behavior.")
         self.xshut.value = 1 # Power on device
         logger.debug(f"Sensor at future address {self._address} (decimal) has been powered on")
-        self.device = _VL53L0X(self.root_i2c)
+        self.device = _VL53L0X(self.root_i2c, address=VL53L0XSensor._initial_address)
         logger.debug(f"Sensor at future address {self._address} (decimal) has been initialized")
         self.device.start_continuous() # Start device at 0x29
 
@@ -116,24 +119,31 @@ class VL53L0XSensor(BaseSensor):
                     time.sleep(0.5)
                     self.distance = -1
 
-                    if 0x29 not in _list_i2c_devices():
-                        logger.warning("Address 0x29 not found, skipping recovery for now")
-                        continue
+                    # recovery process
+                    # only recover if the first sensor
+                    if self._address == VL53L0XSensor._address_range:
+                        if 0x29 not in _list_i2c_devices():
+                            logger.warning("Address 0x29 not found, skipping recovery for now")
+                            continue
+                        print("here")
+                        if not VL53L0XSensor._recovering:
+                            print("here1")
+                            VL53L0XSensor._recovering = True
 
-                    if not VL53L0XSensor._recovering:
-                        VL53L0XSensor._recovering = True
+                            logger.info(f"Attempting recovery for addr:{self._address}")
 
-                        logger.info(f"Attempting recovery for addr:{self._address}")
+                            # Power off all devices
+                            for obj in VL53L0XSensor._all_classes:
+                                obj.xshut.value = 0
 
-                        # Power off all devices
-                        for obj in VL53L0XSensor._all_classes:
-                            obj.xshut.value = 0
+                            # Reinitialize all devices
+                            for obj in VL53L0XSensor._all_classes:
+                                obj.begin(thread=False)
 
-                        # Reinitialize all devices
-                        for obj in VL53L0XSensor._all_classes:
-                            obj.begin(thread=False)
+                            VL53L0XSensor._recovering = False
+                    else:
+                        logger.trace(f"Device at address {self._address} != starting address {VL53L0XSensor._address_range}, not recovering from this thread")
 
-                        VL53L0XSensor._recovering = False
                 self.tripped = self.distance < self._trip_distance
 
                 time.sleep(0.02)

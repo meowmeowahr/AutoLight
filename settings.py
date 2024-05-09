@@ -1,4 +1,4 @@
-from logging import INFO, DEBUG
+from logging import INFO
 from os import environ
 
 from ha_mqtt_discoverable import Settings
@@ -61,7 +61,10 @@ DEBUG_UPDATE_RATE = 15.0 # seconds
 ## Logging Settings
 
 # Logging
-INTERACTIVE_LOG_LEVEL = DEBUG # Logging level for use in an interactive terminal
+# Use types from Python's standard logging module (ex: logging.INFO, logging.WARNING)
+# For trace level logging, use 0, or use the -Vt cmdline arg
+
+INTERACTIVE_LOG_LEVEL = INFO # Logging level for use in an interactive terminal
 REGULAR_LOG_LEVEL = INFO # Logging level for non-interactive shell
 
 DO_BANNER = True
