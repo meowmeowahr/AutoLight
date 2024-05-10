@@ -30,7 +30,7 @@ sensors:
 #  | | |
 #  | |_|_____________LED1
 #  |   |______________LED2
-#  ____________________LED3
+#  ____________________LED0
 
 leds:
   # Number of leds for main channels
