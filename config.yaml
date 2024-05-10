@@ -1,42 +1,103 @@
+# Sensor segment
+# Currently only VL53L0X are supported
+# Typical data wiring configuration for a 3-sensor setup (not including power)
+#
+#  ________  ________  ________
+# |       | |       | |       |
+# --------  --------  --------
+# |_|_|_____|_|_|_____|_|_|_______ SDA
+#   |_|_______|_|_______|_|________ SCL
+#     |_________|_________|_________ XSHUT_1
+#               |_________|__________ XSHUT_2
+#                         |___________ XSHUT_3
+
 sensors:
+  # Number of total VL53L0X Sensors in system
   count: 6
+  # Tripping distance per each sensor
   per_sensor_calibrations: [60, 51, 51, 43.5, 60, 55]
+  # XSHUT connections to each sensor, determines which order sensors will be intialized
   xshut_pins: [21, 20, 7, 8, 25, 24, 16, 12, 23, 18, 14, 15, 26, 19]
+  # Calculation time alloted to each sensor, higher will have better accuracy but may result in lag
   timing_budget: 72000
 
+# Led Segment
+# Currently only one PCA9685 i2c pwm driver are supported
+# Led indexes must start at 0
+# Typical led arrangement for 3 leds
+#
+#  0 1 2 3 4  5 6 7 8  9 10 11 12  13 14 15 16
+#  | | |
+#  | |_|_____________LED1
+#  |   |______________LED2
+#  ____________________LED3
+
 leds:
+  # Number of leds for main channels
   main_count: 6
+  # Operation frequency of each led, higher is usually better, maximum is around 1,600
   freq: 120
+  # Led Update rate when system is enabled
   fps_on : 120
+  # Led Update rate when system is disabled
   fps_off: 60
 
+# Per-animation settings
 animations:
+  # Settings for Blink animation
   blink:
+    # Blink rate
     blink_hz: 2
+  # Settings for Fade animation
   fade:
+    # Fade speed
     fade_speed_multiplier: 0.75
 
+# Home Assistant connection and entities
 home_assistant:
+  # MQTT Broker settings
+  # Username and password can be set to "USE_ENV" for use the BROKER_USER and BROKER_PASS environment variables
   mqtt:
+    # Broker address
     host: "homeassistant.local"
+    # Broker's Non-SSL MQTT port
     port: 1883
+    # Broker psername
     username: "USE_ENV"
+    # Broker password
     password: "USE_ENV"
+    # Maximum time to attempt connection to MQTT
     connection_timeout: 6.0
+  # Device listing to appear in HA
   device:
+    # Device name
     name: "Staircase Lighting"
+    # Device unique id
     id: "sl"
+  # Main controller entity to appear in HA
   light_entity:
+    # Entity name
     name: "Main Control"
+    # Entity icon, https://pictogrammers.com/library/mdi/ are the icons available to ha by default
     icon: "mdi:stairs"
+    # Light unique id
     uid: "light_staircase"
+  # Extra entities available to ha for monitoring cpu and memory usage
   debugging_entities:
+    # Enabled or not
     create_debug_entities: true
+    # Update speed in seconds
     update_rate: 15.0
 
+# Terminal logging settings
+# Possible values are "TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
 logging:
+  # This will usually by the logging level when being used in a interactive terminal
   interactive_log_level: "INFO"
+  # This will be the level use in a non-interactive session such as a systemd service
   regular_log_level: "INFO"
   
+# Misc settings
 misc:
+  # Enable fancy banner for interactive sessions
   do_banner: true
