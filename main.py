@@ -345,6 +345,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}, using Python {platform.python_version()}')
+    
+    parser.add_argument("-c", "--config", default="config.yaml", type=str, help="YAML based configuration path", action="store")
 
     parser.add_argument("-V", "--verbose", default=False, help="Enable verbose logging", action="store_true")
     parser.add_argument("-Vt", "--trace", default=False, help="Enable extra-verbose trace logging", action="store_true")
@@ -352,7 +354,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load settings
-    settings = Settings()
+    settings = Settings(args.config)
 
     # Create logger
     traceback_install(show_locals=True)

@@ -1,6 +1,9 @@
 import os
+import sys
 import yaml
 from enum import Enum
+
+from loguru import logger
 
 class SettingsEnum(Enum):
     SENSOR_COUNT = "sensors.count"
@@ -31,6 +34,10 @@ class SettingsEnum(Enum):
 
 class Settings:
     def __init__(self, config_file='config.yaml'):
+        self.config_file = config_file
+        if not os.path.exists(config_file):
+            logger.critical(f"Configuration file {config_file} does not exist")
+            sys.exit()
         with open(config_file) as f:
             self.settings: dict = yaml.load(f, yaml.SafeLoader)
 
@@ -51,6 +58,6 @@ class Settings:
     def set(self, key, value):
         self.settings[key] = value
 
-    def save(self, config_file='config.yaml'):
-        with open(config_file, 'w') as f:
+    def save(self):
+        with open(self.config_file, 'w') as f:
             yaml.dump(self.settings, f)
