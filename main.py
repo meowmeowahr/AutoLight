@@ -13,7 +13,7 @@ import time
 import socket
 import platform
 
-from ha_mqtt_discoverable import Settings
+from ha_mqtt_discoverable import Settings as HASettings
 from ha_mqtt_discoverable.sensors import (
     BinarySensor,
     BinarySensorInfo,
@@ -31,7 +31,7 @@ from loguru import logger
 from rich.traceback import install as traceback_install
 
 from subsystems.leds import (
-    LedArray,
+    PCA9685LedArray,
     LedSettings,
     NullAnimation,
     PowerUnits,
@@ -45,7 +45,7 @@ from utils import surround_list, is_os_64bit, square_wave
 from data_types import LightingData, LIGHT_EFFECTS, Animations
 
 import checks
-import settings
+from settings import Settings, SettingsEnum
 
 __version__ = "0.1.0"
 
@@ -59,13 +59,13 @@ class Main:
         startup_time = time.time()
 
         # Visual setup
-        if settings.DO_BANNER:
+        if settings.get_by_enum(SettingsEnum.DO_BANNER):
             banner()
 
         atexit.register(self.at_exit)
 
         # Quick sanity checks
-        if not checks.run_sanity():
+        if not checks.run_sanity(settings):
             sys.exit()
 
         # Network connectivity test
@@ -73,35 +73,44 @@ class Main:
         while not network_available:
             try:
                 socket.getaddrinfo(
-                    settings.MQTT_SETTINGS.host, settings.MQTT_SETTINGS.port
+                    settings.get_by_enum(SettingsEnum.MQTT_HOST), settings.get_by_enum(SettingsEnum.MQTT_PORT)
                 )
                 network_available = True
             except socket.gaierror as e:
                 logger.error(f"Network test failed, retrying, {repr(e)}")
                 time.sleep(1)
 
+        # MQTT
+        self.mqtt_settings = HASettings.MQTT(
+            host=settings.get_by_enum(SettingsEnum.MQTT_HOST),
+            port=settings.get_by_enum(SettingsEnum.MQTT_PORT),
+            username=settings.get_by_enum(SettingsEnum.BROKER_USER),
+            password=settings.get_by_enum(SettingsEnum.BROKER_PASS)
+        )
+
         # Global lighting state
         self.lighting_data = LightingData()
 
         # Home Assistant Device Class
         self.device_info = DeviceInfo(
-            name=settings.DEVICE_NAME, identifiers=settings.DEVICE_ID
+            name=settings.get_by_enum(SettingsEnum.DEVICE_NAME), 
+            identifiers=settings.get_by_enum(SettingsEnum.DEVICE_ID)
         )
 
         # Create physical and Home Assistant sensors
         self.sensors, self.ha_sensors = self.create_sensors(self.device_info)
-        logger.info(f"Initialized {settings.SENSOR_COUNT} sensors of type {type(self.sensors[0]).__name__}")
-        self.sensor_trips = [[]] * settings.SENSOR_COUNT
+        logger.info(f"Initialized {settings.get_by_enum(SettingsEnum.SENSOR_COUNT)} sensors of type {type(self.sensors[0]).__name__}")
+        self.sensor_trips = [[]] * settings.get_by_enum(SettingsEnum.SENSOR_COUNT)
 
         # Physical led outputs
-        self.led_array = LedArray(
+        self.led_array = PCA9685LedArray(
             LedSettings(
-                led_count=settings.LED_COUNT,
-                freq=settings.LED_FREQ,
-                fps=settings.LED_FPS,
+                led_count=settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT),
+                freq=settings.get_by_enum(SettingsEnum.LED_FREQ),
+                fps=settings.get_by_enum(SettingsEnum.LED_FPS_ON),
             )
         )
-        logger.info(f"Initialized {settings.LED_COUNT} leds over PCA")
+        logger.info(f"Initialized {settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)} leds over PCA")
 
         # Create Home Assistant Light
         self.ha_light, self.ha_light_info = self.create_ha_light(
@@ -111,7 +120,7 @@ class Main:
         # Create Home Assistant Debug Devices
         self.cpu_sensor = None
         self.mem_sensor = None
-        if settings.CREATE_DEBUG_ENTITIES:
+        if settings.get_by_enum(SettingsEnum.CREATE_DEBUG_ENTITIES):
             sensor_info = SensorInfo(
                 device=self.device_info,
                 name="CPU Usage",
@@ -120,7 +129,7 @@ class Main:
                 unique_id="cpu",
             )
             self.cpu_sensor = Sensor(
-                Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info)
+                HASettings(mqtt=self.mqtt_settings, entity=sensor_info)
             )
 
             sensor_info = SensorInfo(
@@ -131,7 +140,7 @@ class Main:
                 unique_id="mem",
             )
             self.mem_sensor = Sensor(
-                Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info)
+                HASettings(mqtt=self.mqtt_settings, entity=sensor_info)
             )
 
         # Launch led thread
@@ -195,23 +204,23 @@ class Main:
     def create_ha_light(self, callback, device_info):
         # Information about the light
         ha_light_info = LightInfo(
-            name=settings.LIGHT_NAME,
-            icon=settings.LIGHT_ICON,
+            name=settings.get_by_enum(SettingsEnum.LIGHT_NAME),
+            icon=settings.get_by_enum(SettingsEnum.LIGHT_ICON),
             device=device_info,
-            unique_id=settings.LIGHT_UID,
+            unique_id=settings.get_by_enum(SettingsEnum.LIGHT_UID),
             brightness=True,
             color_mode=False,
             effect=True,
             effect_list=list(LIGHT_EFFECTS.keys()),
         )
 
-        ha_light_settings = Settings(mqtt=settings.MQTT_SETTINGS, entity=ha_light_info)
+        ha_light_settings = HASettings(mqtt=self.mqtt_settings, entity=ha_light_info)
 
         ha_light = Light(ha_light_settings, callback)
 
         start_connect_time = time.time()
         while not ha_light.mqtt_client.is_connected():
-            if time.time() - start_connect_time > settings.MQTT_CONNECTION_TIMEOUT:
+            if time.time() - start_connect_time > settings.get_by_enum(SettingsEnum.MQTT_CONNECTION_TIMEOUT):
                 logger.critical("MQTT Client Timeout")
                 sys.exit()
             time.sleep(0.05)
@@ -224,11 +233,11 @@ class Main:
         sensors: list[VL53L0XSensor] = []
         ha_sensors: list[BinarySensor] = []
 
-        for pin in settings.SENSOR_XSHUT_PINS[: settings.SENSOR_COUNT]:
+        for pin in settings.get_by_enum(SettingsEnum.SENSOR_XSHUT_PINS)[: settings.get_by_enum(SettingsEnum.SENSOR_COUNT)]:
             sensors.append(VL53L0XSensor(pin))
 
         for index, pin in enumerate(
-            settings.SENSOR_XSHUT_PINS[: settings.SENSOR_COUNT]
+            settings.get_by_enum(SettingsEnum.SENSOR_XSHUT_PINS)[: settings.get_by_enum(SettingsEnum.SENSOR_COUNT)]
         ):
             # HA entity
             sensor_info = BinarySensorInfo(
@@ -238,14 +247,14 @@ class Main:
                 device=device_info,
             )
             ha_sensor = BinarySensor(
-                Settings(mqtt=settings.MQTT_SETTINGS, entity=sensor_info)
+                HASettings(mqtt=self.mqtt_settings, entity=sensor_info)
             )
             ha_sensors.append(ha_sensor)
 
             # Physical device
             sensors[index].begin()
-            sensors[index].timing_budget = settings.SENSOR_TIMING_BUDGET
-            sensors[index].trip_distance = settings.PER_SENSOR_CALIBRATIONS[index]
+            sensors[index].timing_budget = settings.get_by_enum(SettingsEnum.SENSOR_TIMING_BUDGET)
+            sensors[index].trip_distance = settings.get_by_enum(SettingsEnum.PER_SENSOR_CALIBRATIONS)[index]
 
         return sensors, ha_sensors
 
@@ -262,15 +271,15 @@ class Main:
             time.sleep(
                 1
                 / (
-                    settings.LED_FPS
+                    settings.get_by_enum(SettingsEnum.LED_FPS_ON)
                     if self.lighting_data.power
-                    else settings.LED_OFF_FPS
+                    else settings.get_by_enum(SettingsEnum.LED_FPS_OFF)
                 )
             )
 
             if self.lighting_data.power is False:
                 self.led_array.raw_brightness = False
-                for index in range(settings.LED_COUNT):
+                for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
                     self.led_array.set_power_state(index, False)
                 continue
 
@@ -285,7 +294,7 @@ class Main:
                     self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.STEADY:
                 self.led_array.raw_brightness = False
-                for i in range(settings.LED_COUNT):
+                for i in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
                     self.led_array.set_power_state(i, True)
                     self.led_array.set_brightness(
                         i, self.lighting_data.brightness, PowerUnits.BITS8
@@ -293,28 +302,28 @@ class Main:
                     self.led_array.set_animation(i, NullAnimation())
             elif self.lighting_data.effect == Animations.BLINK:
                 self.led_array.raw_brightness = False
-                if square_wave(time.time(), settings.BLINK_HZ, 1) == 1:
-                    for index in range(settings.LED_COUNT):
+                if square_wave(time.time(), settings.get_by_enum(SettingsEnum.BLINK_HZ), 1) == 1:
+                    for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
                         self.led_array.set_power_state(index, True)
                         self.led_array.set_brightness(
                             index, self.lighting_data.brightness, PowerUnits.BITS8
                         )
                         self.led_array.set_animation(index, NullAnimation())
                 else:
-                    for index in range(settings.LED_COUNT):
+                    for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
                         self.led_array.set_power_state(index, False)
                         self.led_array.set_brightness(
                             index, self.lighting_data.brightness, PowerUnits.BITS8
                         )
                         self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.FADE:
-                for index in range(settings.LED_COUNT):
+                for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
                     self.led_array.set_power_state(index, True)
                     self.led_array.set_brightness(
                         index, self.lighting_data.brightness, PowerUnits.BITS8
                     )
                     self.led_array.set_animation(
-                        index, FadeAnimation(settings.FADE_SPEED_MULTIPLIER)
+                        index, FadeAnimation(settings.get_by_enum(SettingsEnum.FADE_SPEED_MULTIPLIER))
                     )
 
     def at_exit(self):
@@ -337,22 +346,25 @@ if __name__ == "__main__":
 
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}, using Python {platform.python_version()}')
 
-    parser.add_argument("-V", "--verbose", default=False, action="store_true")
-    parser.add_argument("-Vt", "--trace", default=False, action="store_true")
+    parser.add_argument("-V", "--verbose", default=False, help="Enable verbose logging", action="store_true")
+    parser.add_argument("-Vt", "--trace", default=False, help="Enable extra-verbose trace logging", action="store_true")
 
     args = parser.parse_args()
 
+    # Load settings
+    settings = Settings()
+
     # Create logger
-    traceback_install(show_locals=False)
+    traceback_install(show_locals=True)
 
     if args.trace:
         log_level = 0
     elif args.verbose:
         log_level = logging.DEBUG
     elif is_interactive():
-        log_level = settings.INTERACTIVE_LOG_LEVEL
+        log_level = settings.get_by_enum(SettingsEnum.INTERACTIVE_LOG_LEVEL)
     else:
-        log_level = settings.REGULAR_LOG_LEVEL
+        log_level = settings.get_by_enum(SettingsEnum.REGULAR_LOG_LEVEL)
 
     logger.remove()
     logger.add(sys.stderr, level=log_level)
@@ -367,4 +379,4 @@ if __name__ == "__main__":
         if main.mem_sensor:
             main.mem_sensor.set_state(psutil.virtual_memory()[2])
 
-        time.sleep(settings.DEBUG_UPDATE_RATE)
+        time.sleep(settings.get_by_enum(SettingsEnum.DEBUG_UPDATE_RATE))

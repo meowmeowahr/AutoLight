@@ -1,0 +1,42 @@
+sensors:
+  count: 6
+  per_sensor_calibrations: [60, 51, 51, 43.5, 60, 55]
+  xshut_pins: [21, 20, 7, 8, 25, 24, 16, 12, 23, 18, 14, 15, 26, 19]
+  timing_budget: 72000
+
+leds:
+  main_count: 6
+  freq: 120
+  fps_on : 120
+  fps_off: 60
+
+animations:
+  blink:
+    blink_hz: 2
+  fade:
+    fade_speed_multiplier: 0.75
+
+home_assistant:
+  mqtt:
+    host: "homeassistant.local"
+    port: 1883
+    username: "USE_ENV"
+    password: "USE_ENV"
+    connection_timeout: 6.0
+  device:
+    name: "Staircase Lighting"
+    id: "sl"
+  light_entity:
+    name: "Main Control"
+    icon: "mdi:stairs"
+    uid: "light_staircase"
+  debugging_entities:
+    create_debug_entities: true
+    update_rate: 15.0
+
+logging:
+  interactive_log_level: "INFO"
+  regular_log_level: "INFO"
+  
+misc:
+  do_banner: true

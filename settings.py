@@ -1,70 +1,56 @@
-from logging import INFO
-from os import environ
+import os
+import yaml
+from enum import Enum
 
-from ha_mqtt_discoverable import Settings
+class SettingsEnum(Enum):
+    SENSOR_COUNT = "sensors.count"
+    PER_SENSOR_CALIBRATIONS = "sensors.per_sensor_calibrations"
+    SENSOR_XSHUT_PINS = "sensors.xshut_pins"
+    SENSOR_TIMING_BUDGET = "sensors.timing_budget"
+    MAIN_LED_COUNT = "leds.main_count"
+    LED_FREQ = "leds.freq"
+    LED_FPS_ON = "leds.fps_on"
+    LED_FPS_OFF = "leds.fps_off"
+    BLINK_HZ = "animations.blink.blink_hz"
+    FADE_SPEED_MULTIPLIER = "animations.fade.fade_speed_multiplier"
+    MQTT_HOST = "home_assistant.mqtt.host"
+    MQTT_PORT = "home_assistant.mqtt.port"
+    BROKER_USER = "home_assistant.mqtt.username"
+    BROKER_PASS = "home_assistant.mqtt.password"
+    MQTT_CONNECTION_TIMEOUT = "home_assistant.mqtt.connection_timeout"
+    DEVICE_NAME = "home_assistant.device.name"
+    DEVICE_ID = "home_assistant.device.id"
+    LIGHT_NAME = "home_assistant.light_entity.name"
+    LIGHT_ICON = "home_assistant.light_entity.icon"
+    LIGHT_UID = "home_assistant.light_entity.uid"
+    CREATE_DEBUG_ENTITIES = "home_assistant.debugging_entities.create_debug_entities"
+    DEBUG_UPDATE_RATE = "home_assistant.debugging_entities.update_rate"
+    INTERACTIVE_LOG_LEVEL = "logging.interactive_log_level"
+    REGULAR_LOG_LEVEL = "logging.regular_log_level"
+    DO_BANNER = "misc.do_banner"
 
-## Sensor Section
+class Settings:
+    def __init__(self, config_file='config.yaml'):
+        with open(config_file) as f:
+            self.settings: dict = yaml.load(f, yaml.SafeLoader)
 
-# Number of sensors present in the system (must all be on the main i2c bus)
-SENSOR_COUNT = 6
+    def get_by_enum(self, setting_enum: SettingsEnum):
+        setting_path = setting_enum.value.split(".")
+        setting_value = self.settings
+        for key in setting_path:
+            setting_value = setting_value[key]
 
-# Sensor trip distances (cm)
-PER_SENSOR_CALIBRATIONS = [60, 51, 51, 43.5, 60, 55]
+        if setting_value == "USE_ENV":
+            setting_value = os.environ[setting_enum.name]
 
-# VL53L0X Shutdown Pins (required)
-SENSOR_XSHUT_PINS = [21, 20, 7, 8, 25, 24, 16, 12, 23, 18, 14, 15, 26, 19]
+        return setting_value
 
-# Sensor Timing Budget in microseconds (Higher means better accuracy, but slower read times)
-SENSOR_TIMING_BUDGET = 72000
+    def get(self, key):
+        return self.settings.get(key)
 
-## Led Section
+    def set(self, key, value):
+        self.settings[key] = value
 
-# Number of leds present in system (must be the same as the number of sensors)
-LED_COUNT = 6
-
-# Lighting frequency control (usually the higher the better, but required settingss may vary)
-LED_FREQ = 120
-
-# Lighting frame rate cap
-LED_FPS = 560
-LED_OFF_FPS = 560
-
-## Per-animation settings
-
-# Speed for Blink Animation
-BLINK_HZ = 2
-
-# Speed for Fade Animation
-FADE_SPEED_MULTIPLIER = 0.75
-
-## Home Assistant Options
-
-# MQTT Broker for Home Assistant
-MQTT_SETTINGS = Settings.MQTT(host="homeassistant.local", username=environ["BROKER_USER"], password=environ["BROKER_PASS"])
-
-# Maximum time for MQTT to connect
-MQTT_CONNECTION_TIMEOUT = 6.0
-
-# Home Assistant Device Options
-DEVICE_NAME = "Staircase Lighting"
-DEVICE_ID = "sl"
-
-# Home Assistant Light Entity Options
-LIGHT_NAME = "Main Control"
-LIGHT_ICON = "mdi:stairs"
-LIGHT_UID = "light_staircase"
-
-# Home Assistant debugging entities
-CREATE_DEBUG_ENTITIES = True
-DEBUG_UPDATE_RATE = 15.0 # seconds
-
-## Logging Settings
-
-# Logging
-# Use types from Python's standard logging module (ex: logging.INFO, logging.WARNING)
-# For trace level logging, use 0, or use the -Vt cmdline arg
-
-INTERACTIVE_LOG_LEVEL = INFO # Logging level for use in an interactive terminal
-REGULAR_LOG_LEVEL = INFO # Logging level for non-interactive shell
-
-DO_BANNER = True
+    def save(self, config_file='config.yaml'):
+        with open(config_file, 'w') as f:
+            yaml.dump(self.settings, f)

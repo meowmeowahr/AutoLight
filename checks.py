@@ -1,15 +1,19 @@
 from loguru import logger
 
-import settings
+from settings import Settings, SettingsEnum
 
-def run_sanity():
+def run_sanity(settings: Settings):
     passing = True
-    if settings.SENSOR_COUNT > settings.LED_COUNT:
-        logger.critical(f"Led segments {settings.LED_COUNT} does not match number of sensors {settings.SENSOR_COUNT}")
+    if settings.get_by_enum(SettingsEnum.SENSOR_COUNT) > settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT):
+        logger.critical(f"Led segments {settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)} does "
+                        f"not match number of sensors "
+                        f"{settings.get_by_enum(SettingsEnum.SENSOR_COUNT)}")
         passing = False
 
-    if settings.SENSOR_COUNT != len(settings.PER_SENSOR_CALIBRATIONS):
-        logger.critical(f"Sensorcount {settings.SENSOR_COUNT} does not match number of calibrations {len(settings.PER_SENSOR_CALIBRATIONS)}")
+    if settings.get_by_enum(SettingsEnum.SENSOR_COUNT) != len(settings.get_by_enum(SettingsEnum.PER_SENSOR_CALIBRATIONS)):
+        logger.critical(f"Sensorcount {settings.get_by_enum(SettingsEnum.SENSOR_COUNT)} does not "
+                        f"match number of calibrations "
+                        f"{len(settings.get_by_enum(SettingsEnum.PER_SENSOR_CALIBRATIONS))}")
         passing = False
     
     if passing:

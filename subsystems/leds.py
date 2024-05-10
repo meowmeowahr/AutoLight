@@ -58,7 +58,7 @@ class LedSettings:
     fps: int = 240
     auto_shutdown: bool = True
 
-class LedArray:
+class PCA9685LedArray:
     """Array of PCA9685-Driven monochromatic leds starting at index 0"""
     def __init__(self, settings: LedSettings = LedSettings()) -> None:
         self.i2c = busio.I2C(board.SCL, board.SDA)
@@ -125,86 +125,99 @@ class LedArray:
         while True:
             loop_time = time.time()
             time.sleep(1 / self._fps)
+            try:
+                for index, led in enumerate(self._led_data):
+                    if not self.raw_brightness:
+                        if led["effect"] == _LedPowerOnState.FADE_UP:
+                            if int(self._led_data[index]["true_brightness"]) == int(led["brightness"]):
+                                self._led_data[index]["effect"] = _LedPowerOnState.NONE
+                                continue
+                            if self._led_data[index]["true_brightness"] + fade_inc > led["brightness"]:
+                                inc = int(led["brightness"] - self._led_data[index]["true_brightness"])
+                                self._led_data[index]["effect"] = _LedPowerOnState.NONE
+                                continue
+                            else:
+                                inc = fade_inc
+                            self._led_data[index]["true_brightness"] = clamp(self._led_data[index]["true_brightness"] + inc, 0, 65535)
+                        elif led["effect"] == _LedPowerOnState.FADE_DOWN:
+                            if self._led_data[index]["true_brightness"] == 0:
+                                self._led_data[index]["effect"] = _LedPowerOnState.NONE
 
-            for index, led in enumerate(self._led_data):
-                if not self.raw_brightness:
-                    if led["effect"] == _LedPowerOnState.FADE_UP:
-                        if int(self._led_data[index]["true_brightness"]) == int(led["brightness"]):
-                            self._led_data[index]["effect"] = _LedPowerOnState.NONE
-                            continue
-                        if self._led_data[index]["true_brightness"] + fade_inc > led["brightness"]:
-                            inc = int(led["brightness"] - self._led_data[index]["true_brightness"])
-                            self._led_data[index]["effect"] = _LedPowerOnState.NONE
-                            continue
+                            if self.pca.channels[index].duty_cycle < fade_inc:
+                                inc = -self.pca.channels[index].duty_cycle
+                            else:
+                                inc = -fade_inc
+                            self._led_data[index]["true_brightness"] = clamp(self._led_data[index]["true_brightness"] + inc, 0, 65535)
                         else:
-                            inc = fade_inc
-                        self._led_data[index]["true_brightness"] = clamp(self._led_data[index]["true_brightness"] + inc, 0, 65535)
-                    elif led["effect"] == _LedPowerOnState.FADE_DOWN:
-                        if self._led_data[index]["true_brightness"] == 0:
-                            self._led_data[index]["effect"] = _LedPowerOnState.NONE
-
-                        if self.pca.channels[index].duty_cycle < fade_inc:
-                            inc = -self.pca.channels[index].duty_cycle
-                        else:
-                            inc = -fade_inc
-                        self._led_data[index]["true_brightness"] = clamp(self._led_data[index]["true_brightness"] + inc, 0, 65535)
+                            self._led_data[index]["true_brightness"] = clamp(led["brightness"], 0, 65535) if led["power"] else 0
                     else:
                         self._led_data[index]["true_brightness"] = clamp(led["brightness"], 0, 65535) if led["power"] else 0
-                else:
-                    self._led_data[index]["true_brightness"] = clamp(led["brightness"], 0, 65535) if led["power"] else 0
 
-                if isinstance(led["animation"], NullAnimation):
-                    if self._led_data[index]["brightness"] != self._led_data[index]["true_brightness"]:
-                        self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
-                elif isinstance(led["animation"], BlinkAnimation):
-                    current_time = loop_time % (led["animation"].on_time + led["animation"].off_time)
-                    wave_output = current_time < led["animation"].on_time
-                    if led["animation"].sync == LedSync.SYNC:
-                        if wave_output:
+                    if isinstance(led["animation"], NullAnimation):
+                        if self._led_data[index]["brightness"] != self._led_data[index]["true_brightness"]:
                             self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
+                    elif isinstance(led["animation"], BlinkAnimation):
+                        current_time = loop_time % (led["animation"].on_time + led["animation"].off_time)
+                        wave_output = current_time < led["animation"].on_time
+                        if led["animation"].sync == LedSync.SYNC:
+                            if wave_output:
+                                self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
+                            else:
+                                self.pca.channels[index].duty_cycle = 0
+                        elif led["animation"].sync == LedSync.STAGGERED:
+                            if (not wave_output) if index % 2 else wave_output:
+                                self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
+                            else:
+                                self.pca.channels[index].duty_cycle = 0
+                        elif led["animation"].sync == LedSync.RANDOM_SYNC:
+                            if time.time() - last_rng_bools_time >= led["animation"].on_time:
+                                last_rng_bools = [random.getrandbits(1) for _ in range(len(self._led_data))]
+                                last_rng_bools_time = time.time()
+                            if last_rng_bools[0]:
+                                self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
+                            else:
+                                self.pca.channels[index].duty_cycle = 0
+                        elif led["animation"].sync == LedSync.RANDOM_UNSYNC:
+                            if time.time() - last_rng_bools_time >= led["animation"].on_time:
+                                last_rng_bools = [random.getrandbits(1) for _ in range(len(self._led_data))]
+                                last_rng_bools_time = time.time()
+                            if last_rng_bools[index]:
+                                self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
+                            else:
+                                self.pca.channels[index].duty_cycle = 0
                         else:
-                            self.pca.channels[index].duty_cycle = 0
-                    elif led["animation"].sync == LedSync.STAGGERED:
-                        if (not wave_output) if index % 2 else wave_output:
-                            self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
-                        else:
-                            self.pca.channels[index].duty_cycle = 0
-                    elif led["animation"].sync == LedSync.RANDOM_SYNC:
-                        if time.time() - last_rng_bools_time >= led["animation"].on_time:
-                            last_rng_bools = [random.getrandbits(1) for _ in range(len(self._led_data))]
-                            last_rng_bools_time = time.time()
-                        if last_rng_bools[0]:
-                            self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
-                        else:
-                            self.pca.channels[index].duty_cycle = 0
-                    elif led["animation"].sync == LedSync.RANDOM_UNSYNC:
-                        if time.time() - last_rng_bools_time >= led["animation"].on_time:
-                            last_rng_bools = [random.getrandbits(1) for _ in range(len(self._led_data))]
-                            last_rng_bools_time = time.time()
-                        if last_rng_bools[index]:
-                            self.pca.channels[index].duty_cycle = self._led_data[index]["true_brightness"]
-                        else:
-                            self.pca.channels[index].duty_cycle = 0
-                    else:
-                        raise NotImplementedError(f"Sync mode {led['animation'].sync} is not implemented")
+                            raise NotImplementedError(f"Sync mode {led['animation'].sync} is not implemented")
 
-                elif isinstance(led["animation"], FadeAnimation):
-                    wave_output = (1 + (math.sin(loop_time * led["animation"].speed_multiplier))) / 2
-                    if led["animation"].sync == LedSync.SYNC:
-                        if wave_output:
-                            self.pca.channels[index].duty_cycle = int(self._led_data[index]["true_brightness"] * wave_output)
+                    elif isinstance(led["animation"], FadeAnimation):
+                        wave_output = (1 + (math.sin(loop_time * led["animation"].speed_multiplier))) / 2
+                        if led["animation"].sync == LedSync.SYNC:
+                            if wave_output:
+                                self.pca.channels[index].duty_cycle = int(self._led_data[index]["true_brightness"] * wave_output)
+                            else:
+                                self.pca.channels[index].duty_cycle = 0
+                        elif led["animation"].sync == LedSync.STAGGERED:
+                            if (not wave_output) if index % 2 else wave_output:
+                                self.pca.channels[index].duty_cycle = int(self._led_data[index]["true_brightness"] * wave_output)
+                            else:
+                                self.pca.channels[index].duty_cycle = int(self._led_data[index]["true_brightness"] * (1 - wave_output))
                         else:
-                            self.pca.channels[index].duty_cycle = 0
-                    elif led["animation"].sync == LedSync.STAGGERED:
-                        if (not wave_output) if index % 2 else wave_output:
-                            self.pca.channels[index].duty_cycle = int(self._led_data[index]["true_brightness"] * wave_output)
-                        else:
-                            self.pca.channels[index].duty_cycle = int(self._led_data[index]["true_brightness"] * (1 - wave_output))
-                    else:
-                        raise NotImplementedError(f"Sync mode {led['animation'].sync} is not implemented")
+                            raise NotImplementedError(f"Sync mode {led['animation'].sync} is not implemented")
+            except OSError as e:
+                logger.error(f"Failed to read from i2c, {repr(e)}")
+                time.sleep(0.5)
+
+                try:
+                    frequency = self.pca.frequency
+                    
+                    self.pca = adafruit_pca9685.PCA9685(self.i2c)
+                    self.pca.reset()
+
+                    self.pca.frequency = frequency
+                except (OSError, RuntimeError) as e:
+                    logger.error(f"Failed to recover i2c, {repr(e)}, retrying...")
 
 if __name__ == "__main__":
-    la = LedArray()
+    la = PCA9685LedArray()
 
     thread = threading.Thread(target=la.update_loop, daemon=True)
     thread.start()

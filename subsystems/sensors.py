@@ -54,9 +54,9 @@ class VL53L0XSensor(BaseSensor):
         if VL53L0XSensor._warnings == _StartupWarnings.ENDED:
             logger.warning("A sensor is starting after this or another sensor has already stopped. This may result in unexpected behavior.")
         self.xshut.value = 1 # Power on device
-        logger.debug(f"Sensor at future address {self._address} (decimal) has been powered on")
+        logger.debug(f"Sensor at future address 0x{self._address:x} has been powered on")
         self.device = _VL53L0X(self.root_i2c, address=VL53L0XSensor._initial_address)
-        logger.debug(f"Sensor at future address {self._address} (decimal) has been initialized")
+        logger.debug(f"Sensor at future address 0x{self._address:x} has been initialized")
         self.device.start_continuous() # Start device at 0x29
 
         if thread:
@@ -65,7 +65,7 @@ class VL53L0XSensor(BaseSensor):
 
         # Device will start out as 0x29, this is incremented up from 0x30 for each class
         self.device.set_address(self._address) 
-        logger.debug(f"Sensor set address to {self._address} (decimal)")
+        logger.debug(f"Sensor set address to 0x{self._address:x}")
 
     def end(self):
         if self.device:
@@ -116,7 +116,6 @@ class VL53L0XSensor(BaseSensor):
                     self.distance = self.device.distance
                 except OSError as e:
                     logger.error(f"Failed to read from i2c, {repr(e)}")
-                    time.sleep(0.5)
                     self.distance = -1
 
                     # recovery process

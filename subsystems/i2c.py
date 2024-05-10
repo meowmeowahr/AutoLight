@@ -8,6 +8,7 @@ def list_devices(bus: smbus.SMBus = smbus.SMBus(1)):
             addresses.append(address)
         except OSError:
             pass # nothing at address
+    
     return addresses
 
 
