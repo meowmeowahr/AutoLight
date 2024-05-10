@@ -38,3 +38,7 @@ Install these before Python dependencies
     `pip install -r requirements.txt`
 
 ### 🚀 AutoLight is now installed
+
+## Configuration
+
+All configuration is done through a config.yaml file. An example to get started is included and used by default in the source. Either directly edit the file, or use the `--config` or `-c` command line argument to define a custom location.
