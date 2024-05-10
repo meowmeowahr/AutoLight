@@ -47,7 +47,7 @@ from data_types import LightingData, LIGHT_EFFECTS, Animations
 import checks
 from settings import Settings, SettingsEnum
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 class Main:
