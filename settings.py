@@ -26,6 +26,7 @@ class SettingsEnum(Enum):
     LIGHT_NAME = "home_assistant.light_entity.name"
     LIGHT_ICON = "home_assistant.light_entity.icon"
     LIGHT_UID = "home_assistant.light_entity.uid"
+    EXTRA_LIGHTS = "extra_leds"
     CREATE_DEBUG_ENTITIES = "home_assistant.debugging_entities.create_debug_entities"
     DEBUG_UPDATE_RATE = "home_assistant.debugging_entities.update_rate"
     INTERACTIVE_LOG_LEVEL = "logging.interactive_log_level"
@@ -44,8 +45,14 @@ class Settings:
     def get_by_enum(self, setting_enum: SettingsEnum):
         setting_path = setting_enum.value.split(".")
         setting_value = self.settings
+
+        if setting_enum == SettingsEnum.EXTRA_LIGHTS:
+            default = []
+        else:
+            default = None
+
         for key in setting_path:
-            setting_value = setting_value[key]
+            setting_value = setting_value.get(key, default)
 
         if setting_value == "USE_ENV":
             setting_value = os.environ[setting_enum.name]

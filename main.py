@@ -12,6 +12,7 @@ import atexit
 import time
 import socket
 import platform
+import functools
 
 from ha_mqtt_discoverable import Settings as HASettings
 from ha_mqtt_discoverable.sensors import (
@@ -42,7 +43,7 @@ from subsystems.sensors import VL53L0XSensor
 from terminal import banner, is_interactive
 
 from utils import surround_list, is_os_64bit, square_wave
-from data_types import LightingData, LIGHT_EFFECTS, Animations
+from data_types import LightingData, LIGHT_EFFECTS, Animations, ExtraLightData, ExtraEffects, EXTRA_LIGHT_EFFECTS
 
 import checks
 from settings import Settings, SettingsEnum
@@ -90,6 +91,8 @@ class Main:
 
         # Global lighting state
         self.lighting_data = LightingData()
+        
+        self.extra_lighting_data = [ExtraLightData()] * len(settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS))
 
         # Home Assistant Device Class
         self.device_info = DeviceInfo(
@@ -116,6 +119,9 @@ class Main:
         self.ha_light, self.ha_light_info = self.create_ha_light(
             self.ha_light_callback, self.device_info
         )
+
+        # Create Home Asisstant Extra Lights
+        self.ha_extra_lights = self.create_extra_lights(self.device_info)
 
         # Create Home Assistant Debug Devices
         self.cpu_sensor = None
@@ -163,6 +169,12 @@ class Main:
         self.ha_light.effect("Walking")
         self.ha_light.on()
 
+        for light in self.ha_extra_lights:
+            
+            light.brightness(255)
+            light.effect("Sensor")
+            light.on()
+
         logger.success(f"Auto-Light version {__version__} is up!")
         logger.info(f"Startup time: {round(time.time() - startup_time, 2)}s")
 
@@ -201,6 +213,36 @@ class Main:
 
         logger.warning(f"Unknown light payload: {payload}")
 
+    def ha_extra_light_callback(self, client: Client, user_data, message: MQTTMessage, index: int):
+        if not self.ha_extra_lights:
+            logger.error("Callback was called without an existing ha_extra_lights")
+            return
+
+
+        # Make sure received payload is json
+        try:
+            payload = json.loads(message.payload.decode())
+        except ValueError as e:
+            logging.error(f"Ony JSON schema is supported for light entities! {e}")
+            return
+
+        if "brightness" in payload:
+            self.extra_lighting_data[index].brightness = payload["brightness"]
+            self.ha_extra_lights[index].brightness(payload["brightness"])
+            return
+        if "effect" in payload:
+            self.extra_lighting_data[index].effect = EXTRA_LIGHT_EFFECTS[payload["effect"]]
+            self.ha_extra_lights[index].effect(payload["effect"])
+            return
+        if "state" in payload:
+            if payload["state"] == self.ha_light_info.payload_on:
+                self.extra_lighting_data[index].power = True
+                self.ha_extra_lights[index].on()
+            else:
+                self.extra_lighting_data[index].power = False
+                self.ha_extra_lights[index].off()
+            return
+
     def create_ha_light(self, callback, device_info):
         # Information about the light
         ha_light_info = LightInfo(
@@ -228,6 +270,36 @@ class Main:
         logger.success("MQTT Client Connected")
 
         return ha_light, ha_light_info
+
+    def create_extra_lights(self, device_info):
+        logger.debug(f"Using extra light config: {settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)}")
+        if not self.ha_light:
+            logger.critical("Extra lights are being created before main lights. Exiting")
+            sys.exit()
+
+        ha_lights = []
+
+        for i in range(len(settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS))):
+            # Information about the light
+            ha_light_info = LightInfo(
+                name=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get("ha_name", f"Extra Channel {settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get('channel', '?')}"),
+                icon=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get("ha_icon", "mdi:lightbulb"),
+                device=device_info,
+                unique_id=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get("ha_id", f"extra{settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get('channel', '?')}"),
+                brightness=True,
+                color_mode=False,
+                effect=True,
+                effect_list=list(EXTRA_LIGHT_EFFECTS.keys()),
+            )
+
+            ha_light_settings = HASettings(mqtt=self.mqtt_settings, entity=ha_light_info)
+
+            ha_lights.append(Light(ha_light_settings, functools.partial(self.ha_extra_light_callback, index=i)))
+
+            # self.led_array.add_extra_light()
+
+        return ha_lights
+            
 
     def create_sensors(self, device_info):
         sensors: list[VL53L0XSensor] = []

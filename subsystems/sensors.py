@@ -120,7 +120,8 @@ class VL53L0XSensor(BaseSensor):
 
                     # recovery process
                     # only recover if the first sensor
-                    if self._address == VL53L0XSensor._address_range:
+                    # if self._address == VL53L0XSensor._address_range:
+                    if True:
                         if 0x29 not in _list_i2c_devices():
                             logger.warning("Address 0x29 not found, skipping recovery for now")
                             continue

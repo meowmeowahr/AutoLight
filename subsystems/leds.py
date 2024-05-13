@@ -72,6 +72,7 @@ class PCA9685LedArray:
         self._fps = settings.fps
 
         self.raw_brightness = False
+        self.enable_recovery = True
 
         self.pca.frequency = settings.freq
 
@@ -82,6 +83,9 @@ class PCA9685LedArray:
 
     def set_fps(self, fps: float):
         self._fps = fps
+
+    def set_raw_channel_value(self, channel: int, brightness: int):
+        self.pca.channels[channel].duty_cycle = brightness
 
     def get_led_count(self):
         return len(self._led_data)
@@ -204,17 +208,21 @@ class PCA9685LedArray:
                             raise NotImplementedError(f"Sync mode {led['animation'].sync} is not implemented")
             except OSError as e:
                 logger.error(f"Failed to read from i2c, {repr(e)}")
-                time.sleep(0.5)
+                if self.enable_recovery:
+                    time.sleep(0.5)
 
-                try:
-                    frequency = self.pca.frequency
-                    
-                    self.pca = adafruit_pca9685.PCA9685(self.i2c)
-                    self.pca.reset()
+                    try:
+                        logger.debug(f"Reloading PCA9685 driver using {self.pca.frequency}hz")
+                        frequency = self.pca.frequency
+                        
+                        self.pca = adafruit_pca9685.PCA9685(self.i2c)
+                        self.pca.reset()
 
-                    self.pca.frequency = frequency
-                except (OSError, RuntimeError) as e:
-                    logger.error(f"Failed to recover i2c, {repr(e)}, retrying...")
+                        self.pca.frequency = frequency
+                    except (OSError, RuntimeError) as e:
+                        logger.error(f"Failed to recover i2c, {repr(e)}, retrying...")
+                else:
+                    logger.warning("PCA9685 experienced an error, and recovery is disabled")
 
 if __name__ == "__main__":
     la = PCA9685LedArray()
