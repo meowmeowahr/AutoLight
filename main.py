@@ -432,8 +432,11 @@ if __name__ == "__main__":
     log_file_path: str = logging_settings.get("log_file", "logger.log")
     log_to_file: bool = logging_settings.get("file_logging", False)
 
+    rich_tracebacks: bool = logging_settings.get("rich_traceback", True)
+
     # Create logger
-    traceback_install(show_locals=True)
+    if rich_tracebacks and is_interactive():
+        traceback_install(show_locals=True)
 
     if args.trace:
         log_level = 0

@@ -126,6 +126,8 @@ logging:
   log_file: "logger.log"
   # Enable logging to file - default: False
   file_logging: True
+  # Enable rich tracebacks using the rich module (only available in interactive terminals) - default: True
+  rich_traceback: True
   
 # Misc settings
 misc:
