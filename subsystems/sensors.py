@@ -14,15 +14,18 @@ from subsystems.i2c import list_devices as _list_i2c_devices
 
 from utils import terminate_thread
 
+
 class _StartupWarnings(Enum):
     NONE = 0
     ENDED = 1
 
+
 class BaseSensor:
     pass
 
+
 class NullSensor(BaseSensor):
-    def __init__(self, trip_distance = None, constant_value = True) -> None:
+    def __init__(self, trip_distance=None, constant_value=True) -> None:
         self.value = constant_value
         self.distance = trip_distance if constant_value else 999
 
@@ -34,7 +37,13 @@ class VL53L0XSensor(BaseSensor):
     _warnings = _StartupWarnings.NONE
     _recovering = False
     _all_classes: list[BaseSensor] = []
-    def __init__(self, shut_pin: int, root_i2c: board.I2C = board.I2C(), trip_distance: float = 20) -> None:
+
+    def __init__(
+        self,
+        shut_pin: int,
+        root_i2c: board.I2C = board.I2C(),
+        trip_distance: float = 20,
+    ) -> None:
 
         self._trip_distance = trip_distance
         self.shut_pin = shut_pin
@@ -53,22 +62,30 @@ class VL53L0XSensor(BaseSensor):
 
         self.updater_thread = threading.Thread(target=self._update_loop, daemon=True)
 
-        logger.trace(f"Created a new class of VL53L0XSensor, using future address 0x{self._address:x}")
+        logger.trace(
+            f"Created a new class of VL53L0XSensor, using future address 0x{self._address:x}"
+        )
 
     def begin(self, thread=True):
         if VL53L0XSensor._warnings == _StartupWarnings.ENDED:
-            logger.warning("A sensor is starting after this or another sensor has already stopped. This may result in unexpected behavior.")
-        self.xshut.value = 1 # Power on device
-        logger.debug(f"Sensor at future address 0x{self._address:x} has been powered on")
+            logger.warning(
+                "A sensor is starting after this or another sensor has already stopped. This may result in unexpected behavior."
+            )
+        self.xshut.value = 1  # Power on device
+        logger.debug(
+            f"Sensor at future address 0x{self._address:x} has been powered on"
+        )
         self.device = _VL53L0X(self.root_i2c, address=VL53L0XSensor._initial_address)
-        logger.debug(f"Sensor at future address 0x{self._address:x} has been initialized")
-        self.device.start_continuous() # Start device at 0x29
+        logger.debug(
+            f"Sensor at future address 0x{self._address:x} has been initialized"
+        )
+        self.device.start_continuous()  # Start device at 0x29
 
         if thread:
             self.updater_thread.start()
 
         # Device will start out as 0x29, this is incremented up from 0x30 for each class
-        self.device.set_address(self._address) 
+        self.device.set_address(self._address)
         logger.debug(f"Sensor set address to 0x{self._address:x}")
 
     def end(self):
@@ -76,33 +93,43 @@ class VL53L0XSensor(BaseSensor):
             self.xshut.value = 0
             VL53L0XSensor._warnings = _StartupWarnings.ENDED
         else:
-            logger.warning(f"Could not end sensor for {self}, device has not yet been initialized")
+            logger.warning(
+                f"Could not end sensor for {self}, device has not yet been initialized"
+            )
 
     def start(self):
         if self.device:
             self.device.start_continuous()
         else:
-            logger.warning(f"Could not re-start sensor for {self}, device has not yet been initialized")
+            logger.warning(
+                f"Could not re-start sensor for {self}, device has not yet been initialized"
+            )
 
     def stop(self):
         if self.device:
             self.device.stop_continuous()
         else:
-            logger.warning(f"Could not stop sensor for {self}, device has not yet been initialized")
+            logger.warning(
+                f"Could not stop sensor for {self}, device has not yet been initialized"
+            )
 
     @property
     def timing_budget(self):
         if self.device:
             return self.device.measurement_timing_budget
         else:
-            logger.error(f"Could not get timing budget for {self}, device has not yet been initialized")
+            logger.error(
+                f"Could not get timing budget for {self}, device has not yet been initialized"
+            )
 
     @timing_budget.setter
     def timing_budget(self, budget: int):
         if self.device:
             self.device.measurement_timing_budget = budget
         else:
-            logger.error(f"Could not get timing budget for {self}, device has not yet been initialized")
+            logger.error(
+                f"Could not get timing budget for {self}, device has not yet been initialized"
+            )
 
     @property
     def trip_distance(self):
@@ -122,12 +149,16 @@ class VL53L0XSensor(BaseSensor):
                         raise OSError("Forced fail due to invalid reading")
                     cycle += 1
                     if cycle % 100 == 0:
-                        logger.trace(f"Sensor 0x{self._address:x} cycle: {cycle}, dist:{self.distance}")
+                        logger.trace(
+                            f"Sensor 0x{self._address:x} cycle: {cycle}, dist:{self.distance}"
+                        )
                 except OSError as e:
                     logger.error(f"Failed to read from i2c, {repr(e)}")
                     self.distance = -1
                     if 0x29 not in _list_i2c_devices():
-                        logger.warning("Address 0x29 not found, skipping recovery for now")
+                        logger.warning(
+                            "Address 0x29 not found, skipping recovery for now"
+                        )
                         continue
                     if not VL53L0XSensor._recovering:
                         VL53L0XSensor._recovering = True
@@ -152,5 +183,3 @@ class VL53L0XSensor(BaseSensor):
                 logger.error(f"Failed to recover i2c, {repr(e)}, retrying...")
                 VL53L0XSensor._recovering = False
                 continue
-
-

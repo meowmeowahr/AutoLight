@@ -1,5 +1,6 @@
 import sys
 
+
 def banner(only_intercative=True):
     text = """
     \033[36m
@@ -12,6 +13,7 @@ def banner(only_intercative=True):
     """
     if (only_intercative and is_interactive()) or not only_intercative:
         print(text)
+
 
 def is_interactive():
     return sys.stdout.isatty()

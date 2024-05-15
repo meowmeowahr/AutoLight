@@ -43,7 +43,14 @@ from subsystems.sensors import VL53L0XSensor
 from terminal import banner, is_interactive
 
 from utils import surround_list, is_os_64bit, square_wave
-from data_types import LightingData, LIGHT_EFFECTS, Animations, ExtraLightData, ExtraEffects, EXTRA_LIGHT_EFFECTS
+from data_types import (
+    LightingData,
+    LIGHT_EFFECTS,
+    Animations,
+    ExtraLightData,
+    ExtraEffects,
+    EXTRA_LIGHT_EFFECTS,
+)
 
 import checks
 from settings import Settings, SettingsEnum
@@ -74,7 +81,8 @@ class Main:
         while not network_available:
             try:
                 socket.getaddrinfo(
-                    settings.get_by_enum(SettingsEnum.MQTT_HOST), settings.get_by_enum(SettingsEnum.MQTT_PORT)
+                    settings.get_by_enum(SettingsEnum.MQTT_HOST),
+                    settings.get_by_enum(SettingsEnum.MQTT_PORT),
                 )
                 network_available = True
             except socket.gaierror as e:
@@ -86,23 +94,27 @@ class Main:
             host=settings.get_by_enum(SettingsEnum.MQTT_HOST),
             port=settings.get_by_enum(SettingsEnum.MQTT_PORT),
             username=settings.get_by_enum(SettingsEnum.BROKER_USER),
-            password=settings.get_by_enum(SettingsEnum.BROKER_PASS)
+            password=settings.get_by_enum(SettingsEnum.BROKER_PASS),
         )
 
         # Global lighting state
         self.lighting_data = LightingData()
-        
-        self.extra_lighting_data = [ExtraLightData()] * len(settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS))
+
+        self.extra_lighting_data = [ExtraLightData()] * len(
+            settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)
+        )
 
         # Home Assistant Device Class
         self.device_info = DeviceInfo(
-            name=settings.get_by_enum(SettingsEnum.DEVICE_NAME), 
-            identifiers=settings.get_by_enum(SettingsEnum.DEVICE_ID)
+            name=settings.get_by_enum(SettingsEnum.DEVICE_NAME),
+            identifiers=settings.get_by_enum(SettingsEnum.DEVICE_ID),
         )
 
         # Create physical and Home Assistant sensors
         self.sensors, self.ha_sensors = self.create_sensors(self.device_info)
-        logger.info(f"Initialized {settings.get_by_enum(SettingsEnum.SENSOR_COUNT)} sensors of type {type(self.sensors[0]).__name__}")
+        logger.info(
+            f"Initialized {settings.get_by_enum(SettingsEnum.SENSOR_COUNT)} sensors of type {type(self.sensors[0]).__name__}"
+        )
         self.sensor_trips = [[]] * settings.get_by_enum(SettingsEnum.SENSOR_COUNT)
 
         # Physical led outputs
@@ -113,7 +125,9 @@ class Main:
                 fps=settings.get_by_enum(SettingsEnum.LED_FPS_ON),
             )
         )
-        logger.info(f"Initialized {settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)} leds over PCA")
+        logger.info(
+            f"Initialized {settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)} leds over PCA"
+        )
 
         # Create Home Assistant Light
         self.ha_light, self.ha_light_info = self.create_ha_light(
@@ -170,7 +184,7 @@ class Main:
         self.ha_light.on()
 
         for light in self.ha_extra_lights:
-            
+
             light.brightness(255)
             light.effect("Sensor")
             light.on()
@@ -213,11 +227,12 @@ class Main:
 
         logger.warning(f"Unknown light payload: {payload}")
 
-    def ha_extra_light_callback(self, client: Client, user_data, message: MQTTMessage, index: int):
+    def ha_extra_light_callback(
+        self, client: Client, user_data, message: MQTTMessage, index: int
+    ):
         if not self.ha_extra_lights:
             logger.error("Callback was called without an existing ha_extra_lights")
             return
-
 
         # Make sure received payload is json
         try:
@@ -231,7 +246,9 @@ class Main:
             self.ha_extra_lights[index].brightness(payload["brightness"])
             return
         if "effect" in payload:
-            self.extra_lighting_data[index].effect = EXTRA_LIGHT_EFFECTS[payload["effect"]]
+            self.extra_lighting_data[index].effect = EXTRA_LIGHT_EFFECTS[
+                payload["effect"]
+            ]
             self.ha_extra_lights[index].effect(payload["effect"])
             return
         if "state" in payload:
@@ -262,7 +279,9 @@ class Main:
 
         start_connect_time = time.time()
         while not ha_light.mqtt_client.is_connected():
-            if time.time() - start_connect_time > settings.get_by_enum(SettingsEnum.MQTT_CONNECTION_TIMEOUT):
+            if time.time() - start_connect_time > settings.get_by_enum(
+                SettingsEnum.MQTT_CONNECTION_TIMEOUT
+            ):
                 logger.critical("MQTT Client Timeout")
                 sys.exit()
             time.sleep(0.05)
@@ -272,9 +291,13 @@ class Main:
         return ha_light, ha_light_info
 
     def create_extra_lights(self, device_info):
-        logger.debug(f"Using extra light config: {settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)}")
+        logger.debug(
+            f"Using extra light config: {settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)}"
+        )
         if not self.ha_light:
-            logger.critical("Extra lights are being created before main lights. Exiting")
+            logger.critical(
+                "Extra lights are being created before main lights. Exiting"
+            )
             sys.exit()
 
         ha_lights = []
@@ -282,34 +305,52 @@ class Main:
         for i in range(len(settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS))):
             # Information about the light
             ha_light_info = LightInfo(
-                name=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get("ha_name", f"Extra Channel {settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get('channel', '?')}"),
-                icon=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get("ha_icon", "mdi:lightbulb"),
+                name=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get(
+                    "ha_name",
+                    f"Extra Channel {settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get('channel', '?')}",
+                ),
+                icon=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get(
+                    "ha_icon", "mdi:lightbulb"
+                ),
                 device=device_info,
-                unique_id=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get("ha_id", f"extra{settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get('channel', '?')}"),
+                unique_id=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get(
+                    "ha_id",
+                    f"extra{settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get('channel', '?')}",
+                ),
                 brightness=True,
                 color_mode=False,
                 effect=True,
                 effect_list=list(EXTRA_LIGHT_EFFECTS.keys()),
             )
 
-            ha_light_settings = HASettings(mqtt=self.mqtt_settings, entity=ha_light_info)
+            ha_light_settings = HASettings(
+                mqtt=self.mqtt_settings, entity=ha_light_info
+            )
 
-            ha_lights.append(Light(ha_light_settings, functools.partial(self.ha_extra_light_callback, index=i)))
+            ha_lights.append(
+                Light(
+                    ha_light_settings,
+                    functools.partial(self.ha_extra_light_callback, index=i),
+                )
+            )
 
             # self.led_array.add_extra_light()
 
         return ha_lights
-            
 
     def create_sensors(self, device_info):
         sensors: list[VL53L0XSensor] = []
         ha_sensors: list[BinarySensor] = []
 
-        for pin in settings.get_by_enum(SettingsEnum.SENSOR_XSHUT_PINS)[: settings.get_by_enum(SettingsEnum.SENSOR_COUNT)]:
+        for pin in settings.get_by_enum(SettingsEnum.SENSOR_XSHUT_PINS)[
+            : settings.get_by_enum(SettingsEnum.SENSOR_COUNT)
+        ]:
             sensors.append(VL53L0XSensor(pin))
 
         for index, pin in enumerate(
-            settings.get_by_enum(SettingsEnum.SENSOR_XSHUT_PINS)[: settings.get_by_enum(SettingsEnum.SENSOR_COUNT)]
+            settings.get_by_enum(SettingsEnum.SENSOR_XSHUT_PINS)[
+                : settings.get_by_enum(SettingsEnum.SENSOR_COUNT)
+            ]
         ):
             # HA entity
             sensor_info = BinarySensorInfo(
@@ -325,8 +366,12 @@ class Main:
 
             # Physical device
             sensors[index].begin()
-            sensors[index].timing_budget = settings.get_by_enum(SettingsEnum.SENSOR_TIMING_BUDGET)
-            sensors[index].trip_distance = settings.get_by_enum(SettingsEnum.PER_SENSOR_CALIBRATIONS)[index]
+            sensors[index].timing_budget = settings.get_by_enum(
+                SettingsEnum.SENSOR_TIMING_BUDGET
+            )
+            sensors[index].trip_distance = settings.get_by_enum(
+                SettingsEnum.PER_SENSOR_CALIBRATIONS
+            )[index]
 
         return sensors, ha_sensors
 
@@ -370,15 +415,24 @@ class Main:
                     )
                     self.led_array.set_animation(i, NullAnimation())
             elif self.lighting_data.effect == Animations.BLINK:
-                if square_wave(time.time(), settings.get_by_enum(SettingsEnum.BLINK_HZ), 1) == 1:
-                    for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
+                if (
+                    square_wave(
+                        time.time(), settings.get_by_enum(SettingsEnum.BLINK_HZ), 1
+                    )
+                    == 1
+                ):
+                    for index in range(
+                        settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)
+                    ):
                         self.led_array.set_power_state(index, True)
                         self.led_array.set_brightness(
                             index, self.lighting_data.brightness, PowerUnits.BITS8
                         )
                         self.led_array.set_animation(index, NullAnimation())
                 else:
-                    for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
+                    for index in range(
+                        settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)
+                    ):
                         self.led_array.set_power_state(index, False)
                         self.led_array.set_brightness(
                             index, self.lighting_data.brightness, PowerUnits.BITS8
@@ -391,7 +445,10 @@ class Main:
                         index, self.lighting_data.brightness, PowerUnits.BITS8
                     )
                     self.led_array.set_animation(
-                        index, FadeAnimation(settings.get_by_enum(SettingsEnum.FADE_SPEED_MULTIPLIER))
+                        index,
+                        FadeAnimation(
+                            settings.get_by_enum(SettingsEnum.FADE_SPEED_MULTIPLIER)
+                        ),
                     )
 
     def at_exit(self):
@@ -412,12 +469,35 @@ if __name__ == "__main__":
         description="Control up to 16 leds with ToF sensors and additional GPIO channels",
     )
 
-    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}, using Python {platform.python_version()}')
-    
-    parser.add_argument("-c", "--config", default="config.yaml", type=str, help="YAML based configuration path", action="store")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}, using Python {platform.python_version()}",
+    )
 
-    parser.add_argument("-V", "--verbose", default=False, help="Enable verbose logging", action="store_true")
-    parser.add_argument("-Vt", "--trace", default=False, help="Enable extra-verbose trace logging", action="store_true")
+    parser.add_argument(
+        "-c",
+        "--config",
+        default="config.yaml",
+        type=str,
+        help="YAML based configuration path",
+        action="store",
+    )
+
+    parser.add_argument(
+        "-V",
+        "--verbose",
+        default=False,
+        help="Enable verbose logging",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-Vt",
+        "--trace",
+        default=False,
+        help="Enable extra-verbose trace logging",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 

@@ -1,5 +1,4 @@
 import platform
-import threading
 import ctypes
 
 def surround_list(input: list[bool], radius=1):

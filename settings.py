@@ -5,6 +5,7 @@ from enum import Enum
 
 from loguru import logger
 
+
 class SettingsEnum(Enum):
     SENSOR_COUNT = "sensors.count"
     PER_SENSOR_CALIBRATIONS = "sensors.per_sensor_calibrations"
@@ -33,8 +34,9 @@ class SettingsEnum(Enum):
     REGULAR_LOG_LEVEL = "logging.regular_log_level"
     DO_BANNER = "misc.do_banner"
 
+
 class Settings:
-    def __init__(self, config_file='config.yaml'):
+    def __init__(self, config_file="config.yaml"):
         self.config_file = config_file
         if not os.path.exists(config_file):
             logger.critical(f"Configuration file {config_file} does not exist")
@@ -66,5 +68,5 @@ class Settings:
         self.root_settings[key] = value
 
     def save(self):
-        with open(self.config_file, 'w') as f:
+        with open(self.config_file, "w") as f:
             yaml.dump(self.root_settings, f)
