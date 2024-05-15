@@ -2,9 +2,9 @@
 # Currently only VL53L0X are supported
 # Typical data wiring configuration for a 3-sensor setup (not including power)
 #
-#  ________  ________  ________
+#  _______   _______   _______
 # |       | |       | |       |
-# --------  --------  --------
+#  -------   -------   -------
 # |_|_|_____|_|_|_____|_|_|_______ SDA
 #   |_|_______|_|_______|_|________ SCL
 #     |_________|_________|_________ XSHUT_1
@@ -13,11 +13,11 @@
 
 sensors:
   # Number of total VL53L0X Sensors in system
-  count: 9
+  count: 11
   # Tripping distance per each sensor
-  per_sensor_calibrations: [60, 51, 51, 41.5, 60, 70, 50, 48.5, 47]
+  per_sensor_calibrations: [64, 53, 55, 42.5, 70, 63, 55, 48.5, 51, 64, 74]
   # XSHUT connections to each sensor, determines which order sensors will be intialized
-  xshut_pins: [21, 20, 7, 8, 25, 24, 16, 12, 23, 18, 14, 15, 26, 19]
+  xshut_pins: [21, 20, 7, 8, 25, 24, 16, 12, 23, 18, 15, 14, 26, 19]
   # Calculation time alloted to each sensor, higher will have better accuracy but may result in lag
   timing_budget: 72000
 
@@ -34,7 +34,7 @@ sensors:
 
 leds:
   # Number of leds for main channels
-  main_count: 9
+  main_count: 11
   # Operation frequency of each led, higher is usually better, maximum is around 1,600
   freq: 120
   # Led Update rate when system is enabled
@@ -118,10 +118,14 @@ home_assistant:
 # Terminal logging settings
 # Possible values are "TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
 logging:
-  # This will usually by the logging level when being used in a interactive terminal
+  # This will usually by the logging level when being used in a interactive terminal - default: "INFO"
   interactive_log_level: "INFO"
-  # This will be the level use in a non-interactive session such as a systemd service
+  # This will be the level use in a non-interactive session such as a systemd service - default: "WARNING"
   regular_log_level: "INFO"
+  # This is the optional file to send logs to - default: "logger.log"
+  log_file: "logger.log"
+  # Enable logging to file - default: False
+  file_logging: True
   
 # Misc settings
 misc:

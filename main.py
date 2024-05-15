@@ -339,6 +339,7 @@ class Main:
             time.sleep(0.05)
 
     def animator_loop(self):
+        logger.info("Animation loop started")
         while True:
             time.sleep(
                 1
@@ -350,13 +351,10 @@ class Main:
             )
 
             if self.lighting_data.power is False:
-                self.led_array.raw_brightness = False
                 for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
                     self.led_array.set_power_state(index, False)
                 continue
-
             if self.lighting_data.effect == Animations.WALKING:
-                self.led_array.raw_brightness = False
                 powers = surround_list(self.sensor_trips)
                 for index, value in enumerate(powers):
                     self.led_array.set_power_state(index, value)
@@ -365,7 +363,6 @@ class Main:
                     )
                     self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.STEADY:
-                self.led_array.raw_brightness = False
                 for i in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
                     self.led_array.set_power_state(i, True)
                     self.led_array.set_brightness(
@@ -373,7 +370,6 @@ class Main:
                     )
                     self.led_array.set_animation(i, NullAnimation())
             elif self.lighting_data.effect == Animations.BLINK:
-                self.led_array.raw_brightness = False
                 if square_wave(time.time(), settings.get_by_enum(SettingsEnum.BLINK_HZ), 1) == 1:
                     for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
                         self.led_array.set_power_state(index, True)
@@ -428,6 +424,14 @@ if __name__ == "__main__":
     # Load settings
     settings = Settings(args.config)
 
+    logging_settings: dict = settings.root_settings.get("logging", {})
+
+    interactive_log_level: str = logging_settings.get("interactive_log_level", "INFO")
+    regular_log_level: str = logging_settings.get("regular_log_level", "WARNING")
+
+    log_file_path: str = logging_settings.get("log_file", "logger.log")
+    log_to_file: bool = logging_settings.get("file_logging", False)
+
     # Create logger
     traceback_install(show_locals=True)
 
@@ -436,12 +440,15 @@ if __name__ == "__main__":
     elif args.verbose:
         log_level = logging.DEBUG
     elif is_interactive():
-        log_level = settings.get_by_enum(SettingsEnum.INTERACTIVE_LOG_LEVEL)
+        log_level = interactive_log_level
     else:
-        log_level = settings.get_by_enum(SettingsEnum.REGULAR_LOG_LEVEL)
+        log_level = regular_log_level
 
     logger.remove()
     logger.add(sys.stderr, level=log_level)
+
+    if log_to_file:
+        logger.add(log_file_path, level=log_level)
 
     main = Main(args)
 

@@ -40,11 +40,11 @@ class Settings:
             logger.critical(f"Configuration file {config_file} does not exist")
             sys.exit()
         with open(config_file) as f:
-            self.settings: dict = yaml.load(f, yaml.SafeLoader)
+            self.root_settings: dict = yaml.load(f, yaml.SafeLoader)
 
     def get_by_enum(self, setting_enum: SettingsEnum):
         setting_path = setting_enum.value.split(".")
-        setting_value = self.settings
+        setting_value = self.root_settings
 
         if setting_enum == SettingsEnum.EXTRA_LIGHTS:
             default = []
@@ -60,11 +60,11 @@ class Settings:
         return setting_value
 
     def get(self, key):
-        return self.settings.get(key)
+        return self.root_settings.get(key)
 
     def set(self, key, value):
-        self.settings[key] = value
+        self.root_settings[key] = value
 
     def save(self):
         with open(self.config_file, 'w') as f:
-            yaml.dump(self.settings, f)
+            yaml.dump(self.root_settings, f)

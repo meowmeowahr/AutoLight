@@ -12,6 +12,8 @@ from enum import Enum
 
 from subsystems.i2c import list_devices as _list_i2c_devices
 
+from utils import terminate_thread
+
 class _StartupWarnings(Enum):
     NONE = 0
     ENDED = 1
@@ -49,7 +51,10 @@ class VL53L0XSensor(BaseSensor):
         VL53L0XSensor._address += 1
         VL53L0XSensor._all_classes.append(self)
 
+        self.updater_thread = threading.Thread(target=self._update_loop, daemon=True)
+
         logger.trace(f"Created a new class of VL53L0XSensor, using future address 0x{self._address:x}")
+
     def begin(self, thread=True):
         if VL53L0XSensor._warnings == _StartupWarnings.ENDED:
             logger.warning("A sensor is starting after this or another sensor has already stopped. This may result in unexpected behavior.")
@@ -60,8 +65,7 @@ class VL53L0XSensor(BaseSensor):
         self.device.start_continuous() # Start device at 0x29
 
         if thread:
-            self._updater_thread = threading.Thread(target=self._update_loop, daemon=True)
-            self._updater_thread.start()
+            self.updater_thread.start()
 
         # Device will start out as 0x29, this is incremented up from 0x30 for each class
         self.device.set_address(self._address) 
@@ -69,7 +73,6 @@ class VL53L0XSensor(BaseSensor):
 
     def end(self):
         if self.device:
-            self.device.stop_continuous()
             self.xshut.value = 0
             VL53L0XSensor._warnings = _StartupWarnings.ENDED
         else:
@@ -110,39 +113,37 @@ class VL53L0XSensor(BaseSensor):
         self._trip_distance = value
 
     def _update_loop(self):
+        cycle = 0
         while True:
             try:
                 try:
                     self.distance = self.device.distance
+                    if self.distance == -1:
+                        raise OSError("Forced fail due to invalid reading")
+                    cycle += 1
+                    if cycle % 100 == 0:
+                        logger.trace(f"Sensor 0x{self._address:x} cycle: {cycle}, dist:{self.distance}")
                 except OSError as e:
                     logger.error(f"Failed to read from i2c, {repr(e)}")
                     self.distance = -1
+                    if 0x29 not in _list_i2c_devices():
+                        logger.warning("Address 0x29 not found, skipping recovery for now")
+                        continue
+                    if not VL53L0XSensor._recovering:
+                        VL53L0XSensor._recovering = True
 
-                    # recovery process
-                    # only recover if the first sensor
-                    # if self._address == VL53L0XSensor._address_range:
-                    if True:
-                        if 0x29 not in _list_i2c_devices():
-                            logger.warning("Address 0x29 not found, skipping recovery for now")
-                            continue
-                        print("here")
-                        if not VL53L0XSensor._recovering:
-                            print("here1")
-                            VL53L0XSensor._recovering = True
+                        logger.info(f"Attempting recovery for addr:{self._address}")
 
-                            logger.info(f"Attempting recovery for addr:{self._address}")
+                        # Power off all devices
+                        for obj in VL53L0XSensor._all_classes:
+                            obj.xshut.value = 0
 
-                            # Power off all devices
-                            for obj in VL53L0XSensor._all_classes:
-                                obj.xshut.value = 0
+                        # Reinitialize all devices
+                        for obj in VL53L0XSensor._all_classes:
+                            terminate_thread(obj.updater_thread)
+                            obj.begin(thread=True)
 
-                            # Reinitialize all devices
-                            for obj in VL53L0XSensor._all_classes:
-                                obj.begin(thread=False)
-
-                            VL53L0XSensor._recovering = False
-                    else:
-                        logger.trace(f"Device at address {self._address} != starting address {VL53L0XSensor._address_range}, not recovering from this thread")
+                        VL53L0XSensor._recovering = False
 
                 self.tripped = self.distance < self._trip_distance
 
