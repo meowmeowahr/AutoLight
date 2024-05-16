@@ -84,7 +84,7 @@ class PCA9685LedArray:
 
         self.pca.frequency = settings.freq
 
-        logger.info(f"Created new LedArray with settings {settings}")
+        logger.debug(f"Created new LedArray with settings {settings}")
 
     def set_freq(self, freq: int):
         self.pca.frequency = freq
@@ -122,7 +122,7 @@ class PCA9685LedArray:
         self._led_data[index]["power"] = on
 
     def end(self):
-        logger.info(f"Ended {self}")
+        logger.debug(f"Ended {self}")
         for channel in self.pca.channels:
             channel.duty_cycle = 0
 
