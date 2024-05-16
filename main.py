@@ -55,7 +55,7 @@ from data_types import (
 import checks
 from settings import Settings
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 class Main:
