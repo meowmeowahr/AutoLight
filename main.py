@@ -53,7 +53,7 @@ from data_types import (
 )
 
 import checks
-from settings import Settings, SettingsEnum
+from settings import Settings
 
 __version__ = "0.2.0"
 
@@ -67,7 +67,7 @@ class Main:
         startup_time = time.time()
 
         # Visual setup
-        if settings.get_by_enum(SettingsEnum.DO_BANNER):
+        if settings.do_banner:
             banner()
 
         atexit.register(self.at_exit)
@@ -81,8 +81,8 @@ class Main:
         while not network_available:
             try:
                 socket.getaddrinfo(
-                    settings.get_by_enum(SettingsEnum.MQTT_HOST),
-                    settings.get_by_enum(SettingsEnum.MQTT_PORT),
+                    settings.mqtt_host,
+                    settings.mqtt_port,
                 )
                 network_available = True
             except socket.gaierror as e:
@@ -91,42 +91,40 @@ class Main:
 
         # MQTT
         self.mqtt_settings = HASettings.MQTT(
-            host=settings.get_by_enum(SettingsEnum.MQTT_HOST),
-            port=settings.get_by_enum(SettingsEnum.MQTT_PORT),
-            username=settings.get_by_enum(SettingsEnum.BROKER_USER),
-            password=settings.get_by_enum(SettingsEnum.BROKER_PASS),
+            host=settings.mqtt_host,
+            port=settings.mqtt_port,
+            username=settings.mqtt_user,
+            password=settings.mqtt_pass,
         )
 
         # Global lighting state
         self.lighting_data = LightingData()
 
-        self.extra_lighting_data = [ExtraLightData()] * len(
-            settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)
-        )
+        self.extra_lighting_data = [ExtraLightData()] * settings.extra_led_count
 
         # Home Assistant Device Class
         self.device_info = DeviceInfo(
-            name=settings.get_by_enum(SettingsEnum.DEVICE_NAME),
-            identifiers=settings.get_by_enum(SettingsEnum.DEVICE_ID),
+            name=settings.device_name,
+            identifiers=settings.device_id,
         )
 
         # Create physical and Home Assistant sensors
         self.sensors, self.ha_sensors = self.create_sensors(self.device_info)
         logger.info(
-            f"Initialized {settings.get_by_enum(SettingsEnum.SENSOR_COUNT)} sensors of type {type(self.sensors[0]).__name__}"
+            f"Initialized {settings.sensor_count} sensors of type {type(self.sensors[0]).__name__}"
         )
-        self.sensor_trips = [[]] * settings.get_by_enum(SettingsEnum.SENSOR_COUNT)
+        self.sensor_trips = [[]] * settings.sensor_count
 
         # Physical led outputs
         self.led_array = PCA9685LedArray(
             LedSettings(
-                led_count=settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT),
-                freq=settings.get_by_enum(SettingsEnum.LED_FREQ),
-                fps=settings.get_by_enum(SettingsEnum.LED_FPS_ON),
+                led_count=settings.led_count,
+                freq=settings.led_freq,
+                fps=settings.led_fps_on,
             )
         )
         logger.info(
-            f"Initialized {settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)} leds over PCA"
+            f"Initialized {settings.led_count} leds over PCA"
         )
 
         # Create Home Assistant Light
@@ -140,7 +138,7 @@ class Main:
         # Create Home Assistant Debug Devices
         self.cpu_sensor = None
         self.mem_sensor = None
-        if settings.get_by_enum(SettingsEnum.CREATE_DEBUG_ENTITIES):
+        if settings.create_debug_entities:
             sensor_info = SensorInfo(
                 device=self.device_info,
                 name="CPU Usage",
@@ -263,10 +261,10 @@ class Main:
     def create_ha_light(self, callback, device_info):
         # Information about the light
         ha_light_info = LightInfo(
-            name=settings.get_by_enum(SettingsEnum.LIGHT_NAME),
-            icon=settings.get_by_enum(SettingsEnum.LIGHT_ICON),
+            name=settings.light_name,
+            icon=settings.light_icon,
             device=device_info,
-            unique_id=settings.get_by_enum(SettingsEnum.LIGHT_UID),
+            unique_id=settings.light_id,
             brightness=True,
             color_mode=False,
             effect=True,
@@ -279,9 +277,7 @@ class Main:
 
         start_connect_time = time.time()
         while not ha_light.mqtt_client.is_connected():
-            if time.time() - start_connect_time > settings.get_by_enum(
-                SettingsEnum.MQTT_CONNECTION_TIMEOUT
-            ):
+            if time.time() - start_connect_time > settings.mqtt_timeout:
                 logger.critical("MQTT Client Timeout")
                 sys.exit()
             time.sleep(0.05)
@@ -292,7 +288,7 @@ class Main:
 
     def create_extra_lights(self, device_info):
         logger.debug(
-            f"Using extra light config: {settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)}"
+            f"Using extra light config: {settings.extra_led_settings}"
         )
         if not self.ha_light:
             logger.critical(
@@ -302,20 +298,20 @@ class Main:
 
         ha_lights = []
 
-        for i in range(len(settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS))):
+        for i in range(settings.extra_led_count):
             # Information about the light
             ha_light_info = LightInfo(
-                name=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get(
+                name=settings.extra_led_settings[i].get(
                     "ha_name",
-                    f"Extra Channel {settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get('channel', '?')}",
+                    f"Extra Channel {settings.extra_led_settings[i].get('channel', '?')}",
                 ),
-                icon=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get(
+                icon=settings.extra_led_settings[i].get(
                     "ha_icon", "mdi:lightbulb"
                 ),
                 device=device_info,
-                unique_id=settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get(
+                unique_id=settings.extra_led_settings[i].get(
                     "ha_id",
-                    f"extra{settings.get_by_enum(SettingsEnum.EXTRA_LIGHTS)[i].get('channel', '?')}",
+                    f"extra{settings.extra_led_settings[i].get('channel', '?')}",
                 ),
                 brightness=True,
                 color_mode=False,
@@ -342,14 +338,14 @@ class Main:
         sensors: list[VL53L0XSensor] = []
         ha_sensors: list[BinarySensor] = []
 
-        for pin in settings.get_by_enum(SettingsEnum.SENSOR_XSHUT_PINS)[
-            : settings.get_by_enum(SettingsEnum.SENSOR_COUNT)
+        for pin in settings.sensor_xshut[
+            : settings.sensor_count
         ]:
             sensors.append(VL53L0XSensor(pin))
 
         for index, pin in enumerate(
-            settings.get_by_enum(SettingsEnum.SENSOR_XSHUT_PINS)[
-                : settings.get_by_enum(SettingsEnum.SENSOR_COUNT)
+            settings.sensor_xshut[
+                : settings.sensor_count
             ]
         ):
             # HA entity
@@ -366,12 +362,8 @@ class Main:
 
             # Physical device
             sensors[index].begin()
-            sensors[index].timing_budget = settings.get_by_enum(
-                SettingsEnum.SENSOR_TIMING_BUDGET
-            )
-            sensors[index].trip_distance = settings.get_by_enum(
-                SettingsEnum.PER_SENSOR_CALIBRATIONS
-            )[index]
+            sensors[index].timing_budget = settings.sensor_timing_budget
+            sensors[index].trip_distance = settings.sensor_calibrations[index]
 
         return sensors, ha_sensors
 
@@ -381,6 +373,12 @@ class Main:
                 self.sensor_trips[i] = s.tripped
                 self.ha_sensors[i]._update_state(self.sensor_trips[i])
                 self.ha_sensors[i].set_attributes({"distance": s.distance})
+
+                if s.require_restart:
+                    s.require_restart = False
+                    s.updater_thread = threading.Thread(target=s._update_loop, daemon=True)
+                    s.begin(thread=False)
+                    s.updater_thread.start()
             time.sleep(0.05)
 
     def animator_loop(self):
@@ -389,14 +387,14 @@ class Main:
             time.sleep(
                 1
                 / (
-                    settings.get_by_enum(SettingsEnum.LED_FPS_ON)
+                    settings.led_fps_on
                     if self.lighting_data.power
-                    else settings.get_by_enum(SettingsEnum.LED_FPS_OFF)
+                    else settings.led_fps_off
                 )
             )
 
             if self.lighting_data.power is False:
-                for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
+                for index in range(settings.led_count):
                     self.led_array.set_power_state(index, False)
                 continue
             if self.lighting_data.effect == Animations.WALKING:
@@ -408,7 +406,7 @@ class Main:
                     )
                     self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.STEADY:
-                for i in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
+                for i in range(settings.led_count):
                     self.led_array.set_power_state(i, True)
                     self.led_array.set_brightness(
                         i, self.lighting_data.brightness, PowerUnits.BITS8
@@ -417,12 +415,12 @@ class Main:
             elif self.lighting_data.effect == Animations.BLINK:
                 if (
                     square_wave(
-                        time.time(), settings.get_by_enum(SettingsEnum.BLINK_HZ), 1
+                        time.time(), settings.blink_animation_hz, 1
                     )
                     == 1
                 ):
                     for index in range(
-                        settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)
+                        settings.led_count
                     ):
                         self.led_array.set_power_state(index, True)
                         self.led_array.set_brightness(
@@ -431,7 +429,7 @@ class Main:
                         self.led_array.set_animation(index, NullAnimation())
                 else:
                     for index in range(
-                        settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)
+                        settings.led_count
                     ):
                         self.led_array.set_power_state(index, False)
                         self.led_array.set_brightness(
@@ -439,7 +437,7 @@ class Main:
                         )
                         self.led_array.set_animation(index, NullAnimation())
             elif self.lighting_data.effect == Animations.FADE:
-                for index in range(settings.get_by_enum(SettingsEnum.MAIN_LED_COUNT)):
+                for index in range(settings.led_count):
                     self.led_array.set_power_state(index, True)
                     self.led_array.set_brightness(
                         index, self.lighting_data.brightness, PowerUnits.BITS8
@@ -447,7 +445,7 @@ class Main:
                     self.led_array.set_animation(
                         index,
                         FadeAnimation(
-                            settings.get_by_enum(SettingsEnum.FADE_SPEED_MULTIPLIER)
+                            settings.fade_animation_multiplier
                         ),
                     )
 
@@ -504,18 +502,8 @@ if __name__ == "__main__":
     # Load settings
     settings = Settings(args.config)
 
-    logging_settings: dict = settings.root_settings.get("logging", {})
-
-    interactive_log_level: str = logging_settings.get("interactive_log_level", "INFO")
-    regular_log_level: str = logging_settings.get("regular_log_level", "WARNING")
-
-    log_file_path: str = logging_settings.get("log_file", "logger.log")
-    log_to_file: bool = logging_settings.get("file_logging", False)
-
-    rich_tracebacks: bool = logging_settings.get("rich_traceback", True)
-
     # Create logger
-    if rich_tracebacks and is_interactive():
+    if settings.rich_tracebacks and is_interactive():
         traceback_install(show_locals=True)
 
     if args.trace:
@@ -523,15 +511,15 @@ if __name__ == "__main__":
     elif args.verbose:
         log_level = logging.DEBUG
     elif is_interactive():
-        log_level = interactive_log_level
+        log_level = settings.interactive_log_level
     else:
-        log_level = regular_log_level
+        log_level = settings.regular_log_level
 
     logger.remove()
     logger.add(sys.stderr, level=log_level)
 
-    if log_to_file:
-        logger.add(log_file_path, level=log_level)
+    if settings.log_to_file:
+        logger.add(settings.log_file_path, level=log_level)
 
     main = Main(args)
 
@@ -543,4 +531,4 @@ if __name__ == "__main__":
         if main.mem_sensor:
             main.mem_sensor.set_state(psutil.virtual_memory()[2])
 
-        time.sleep(settings.get_by_enum(SettingsEnum.DEBUG_UPDATE_RATE))
+        time.sleep(settings.debug_update_rate)

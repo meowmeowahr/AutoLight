@@ -34,12 +34,12 @@ sensors:
 
 leds:
   # Number of leds for main channels
-  main_count: 11
-  # Operation frequency of each led, higher is usually better, maximum is around 1,600
-  freq: 120
-  # Led Update rate when system is enabled
+  count: 11
+  # Operation frequency of each led, higher is usually better, maximum is around 1,600 - default: 200
+  freq: 200
+  # Led Update rate when system is enabled - default: 120
   fps_on : 120
-  # Led Update rate when system is disabled
+  # Led Update rate when system is disabled - default: 60
   fps_off: 60
 
 # Extra led channels on PCA9685
@@ -72,11 +72,11 @@ extra_leds:
 animations:
   # Settings for Blink animation
   blink:
-    # Blink rate
+    # Blink rate - default: 2
     blink_hz: 2
   # Settings for Fade animation
   fade:
-    # Fade speed
+    # Fade speed - default: 0.75
     fade_speed_multiplier: 0.75
 
 # Home Assistant connection and entities
@@ -84,35 +84,35 @@ home_assistant:
   # MQTT Broker settings
   # Username and password can be set to "USE_ENV" for use the BROKER_USER and BROKER_PASS environment variables
   mqtt:
-    # Broker address
+    # Broker address - default: "homeassistant.local"
     host: "homeassistant.local"
-    # Broker's Non-SSL MQTT port
+    # Broker's Non-SSL MQTT port - default: 1883
     port: 1883
-    # Broker psername
+    # Broker psername - default: "USE_ENV"
     username: "USE_ENV"
-    # Broker password
+    # Broker password - default: "USE_ENV"
     password: "USE_ENV"
-    # Maximum time to attempt connection to MQTT
+    # Maximum time to attempt connection to MQTT - default: 6.0
     connection_timeout: 6.0
   # Device listing to appear in HA
   device:
-    # Device name
+    # Device name - default: "AutoLight Device"
     name: "Staircase Lighting"
-    # Device unique id
+    # Device unique id - default: "autolight_0"
     id: "sl"
   # Main controller entity to appear in HA
   light_entity:
-    # Entity name
+    # Entity name - default: "Main Control"
     name: "Main Control"
-    # Entity icon, https://pictogrammers.com/library/mdi/ are the icons available to ha by default
+    # Entity icon, https://pictogrammers.com/library/mdi/ are the icons available to ha by default- default: "mdi:lightbulb"
     icon: "mdi:stairs"
-    # Light unique id
-    uid: "light_staircase"
+    # Light unique id - default: "autolight_main"
+    id: "light_staircase"
   # Extra entities available to ha for monitoring cpu and memory usage
   debugging_entities:
-    # Enabled or not
-    create_debug_entities: true
-    # Update speed in seconds
+    # Enabled or not - default: True
+    create_debug_entities: True
+    # Update speed in seconds - default: 15.0
     update_rate: 15.0
 
 # Terminal logging settings
@@ -131,5 +131,5 @@ logging:
   
 # Misc settings
 misc:
-  # Enable fancy banner for interactive sessions
+  # Enable fancy banner for interactive sessions - default: True
   do_banner: true

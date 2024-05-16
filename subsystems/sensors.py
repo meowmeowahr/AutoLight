@@ -56,6 +56,8 @@ class VL53L0XSensor(BaseSensor):
         self.value = False
         self.distance = 999
 
+        self.require_restart = False
+
         self._address = VL53L0XSensor._address
         VL53L0XSensor._address += 1
         VL53L0XSensor._all_classes.append(self)
@@ -75,7 +77,11 @@ class VL53L0XSensor(BaseSensor):
         logger.debug(
             f"Sensor at future address 0x{self._address:x} has been powered on"
         )
-        self.device = _VL53L0X(self.root_i2c, address=VL53L0XSensor._initial_address)
+
+        self.device = None
+
+        self._create_root_device()
+
         logger.debug(
             f"Sensor at future address 0x{self._address:x} has been initialized"
         )
@@ -87,6 +93,14 @@ class VL53L0XSensor(BaseSensor):
         # Device will start out as 0x29, this is incremented up from 0x30 for each class
         self.device.set_address(self._address)
         logger.debug(f"Sensor set address to 0x{self._address:x}")
+
+    def _create_root_device(self):
+        try:
+            self.device = _VL53L0X(self.root_i2c, address=VL53L0XSensor._initial_address)
+        except OSError as e:
+            logger.error(f"Error trying to create new _VL53L0X, {repr(e)}, retrying in one second")
+            time.sleep(1)
+            self._create_root_device()
 
     def end(self):
         if self.device:
@@ -171,8 +185,8 @@ class VL53L0XSensor(BaseSensor):
 
                         # Reinitialize all devices
                         for obj in VL53L0XSensor._all_classes:
+                            self.require_restart = True
                             terminate_thread(obj.updater_thread)
-                            obj.begin(thread=True)
 
                         VL53L0XSensor._recovering = False
 
