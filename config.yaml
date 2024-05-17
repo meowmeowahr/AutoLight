@@ -43,9 +43,9 @@ leds:
   fps_off: 60
 
 # Extra led channels on PCA9685
-# All extra leds are GPIO controlled and don't support animations
+# All extra leds are GPIO or manually controlled and don't support animations
 # All extra leds must be connected after main leds
-# Typical led arrangement for 3 main leds and 1 extra
+# Typical led arrangement for 4 main leds and 1 extra
 #
 # 0 1 2 3  4 5 6 7  8 9 10 11  12 13 14 1
 # |     |    |
