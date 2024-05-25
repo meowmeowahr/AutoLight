@@ -7,13 +7,9 @@ from gpiozero import DigitalOutputDevice
 from adafruit_vl53l0x import VL53L0X as _VL53L0X
 
 import board
+import busio
 
 from enum import Enum
-
-from subsystems.i2c import list_devices as _list_i2c_devices
-
-from utils import terminate_thread
-
 
 class _StartupWarnings(Enum):
     NONE = 0
@@ -41,7 +37,7 @@ class VL53L0XSensor(BaseSensor):
     def __init__(
         self,
         shut_pin: int,
-        root_i2c: board.I2C = board.I2C(),
+        root_i2c: board.I2C = busio.I2C(board.SCL, board.SDA),
         trip_distance: float = 20,
     ) -> None:
 
@@ -157,43 +153,16 @@ class VL53L0XSensor(BaseSensor):
         cycle = 0
         while True:
             try:
-                try:
-                    self.distance = self.device.distance
-                    if self.distance == -1:
-                        raise OSError("Forced fail due to invalid reading")
-                    cycle += 1
-                    if cycle % 100 == 0:
-                        logger.trace(
-                            f"Sensor 0x{self._address:x} cycle: {cycle}, dist:{self.distance}"
-                        )
-                except OSError as e:
-                    logger.error(f"Failed to read from i2c, {repr(e)}")
-                    self.distance = -1
-                    if 0x29 not in _list_i2c_devices():
-                        logger.warning(
-                            "Address 0x29 not found, skipping recovery for now"
-                        )
-                        continue
-                    if not VL53L0XSensor._recovering:
-                        VL53L0XSensor._recovering = True
+                self.distance = self.device.distance
+                if self.distance == -1:
+                    raise OSError("Forced fail due to invalid reading")
+                
+                cycle += 1
+                if cycle % 100 == 0:
+                    logger.trace(
+                        f"Sensor 0x{self._address:x} cycle: {cycle}, dist:{self.distance}"
+                    )
+            except OSError as e:
+                logger.error(f"Failed to read from i2c, {repr(e)}")
 
-                        logger.info(f"Attempting recovery for addr:{self._address}")
-
-                        # Power off all devices
-                        for obj in VL53L0XSensor._all_classes:
-                            obj.xshut.value = 0
-
-                        # Reinitialize all devices
-                        for obj in VL53L0XSensor._all_classes:
-                            self.require_restart = True
-                            terminate_thread(obj.updater_thread)
-
-                        VL53L0XSensor._recovering = False
-
-                self.tripped = self.distance < self._trip_distance
-
-                time.sleep(0.02)
-            except (OSError, RuntimeError) as e:
-                logger.error(f"Failed to recover i2c, {repr(e)}, retrying...")
-                VL53L0XSensor._recovering = False
-                continue
+            self.tripped = self.distance < self._trip_distance
