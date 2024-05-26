@@ -12,14 +12,51 @@
 #                         |___________ XSHUT_3
 
 sensors:
-  # Number of total VL53L0X Sensors in system
-  count: 11
-  # Tripping distance per each sensor
-  per_sensor_calibrations: [64, 53, 55, 42.5, 70, 63, 55, 48.5, 51, 64, 74]
-  # XSHUT connections to each sensor, determines which order sensors will be intialized
-  xshut_pins: [21, 20, 7, 8, 25, 24, 16, 12, 23, 18, 15, 14, 26, 19]
-  # Calculation time alloted to each sensor, higher will have better accuracy but may result in lag
-  timing_budget: 72000
+  - type: vl53l0x_i2c # sensor type, can either be vl53l0x_i2c or gpio.
+    calibration: 64 # tripping distance
+    xshut_pin: 21 # XSHUT connection for this sensor
+    timing_budget: 72000 # Calculation time alloted to sensor, higher will have better accuracy but may result in lag
+  - type: vl53l0x_i2c
+    calibration: 53
+    xshut_pin: 20
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 55
+    xshut_pin: 7
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 42.5
+    xshut_pin: 8
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 70
+    xshut_pin: 25
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 63
+    xshut_pin: 24
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 55
+    xshut_pin: 16
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 48.5
+    xshut_pin: 12
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 51
+    xshut_pin: 23
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 64
+    xshut_pin: 18
+    timing_budget: 72000
+  - type: vl53l0x_i2c
+    calibration: 74
+    xshut_pin: 15
+    timing_budget: 72000
+
 
 # Led Segment
 # Currently only one PCA9685 i2c pwm driver are supported

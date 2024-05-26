@@ -3,7 +3,7 @@ import time
 
 from loguru import logger
 
-from gpiozero import DigitalOutputDevice
+from gpiozero import DigitalOutputDevice, DigitalInputDevice
 from adafruit_vl53l0x import VL53L0X as _VL53L0X
 
 import board
@@ -25,13 +25,35 @@ class NullSensor(BaseSensor):
         self.value = constant_value
         self.distance = trip_distance if constant_value else 999
 
+class GPIOSensor(BaseSensor):
+    def __init__(self, pin: int, invert: bool, pullup: bool = False, bounce_time: float = 0.0):
+        self.device = DigitalInputDevice(pin, pull_up=pullup, active_state=not invert, bounce_time=bounce_time)
+        self.device.when_activated = self._activated
+        self.device.when_deactivated = self._deactivated
+
+    def _activated(self):
+        self.tripped = True
+
+    def _deactivated(self):
+        self.tripped = False
+
+    def begin():
+        raise NotImplementedError("This function is not implemented")
+
+    def end():
+        raise NotImplementedError("This function is not implemented")
+
+    def start():
+        raise NotImplementedError("This function is not implemented")
+
+    def stop():
+        raise NotImplementedError("This function is not implemented")
 
 class VL53L0XSensor(BaseSensor):
     _address = 0x30
     _initial_address = 0x29
     _address_range = 0x30
     _warnings = _StartupWarnings.NONE
-    _recovering = False
     _all_classes: list[BaseSensor] = []
 
     def __init__(
@@ -51,8 +73,6 @@ class VL53L0XSensor(BaseSensor):
         self.tripped = False
         self.value = False
         self.distance = 999
-
-        self.require_restart = False
 
         self._address = VL53L0XSensor._address
         VL53L0XSensor._address += 1

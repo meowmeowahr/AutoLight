@@ -7,11 +7,18 @@ from loguru import logger
 
 from typing import TypedDict
 
-class SensorTypedSettings(TypedDict):
-    count: int
-    per_sensor_calibrations: list[float]
-    xshut_pins: list[int]
+class VL53L0XTypedSettings(TypedDict):
+    type: str
+    calibration: float
+    xshut_pin: int
     timing_budget: int
+
+class GPIOSensorTypedSettings(TypedDict):
+    type: str
+    pin: float
+    invert: int
+    pullup: int
+    bounce_time: float
 
 class LedTypedSettings(TypedDict):
     count: int
@@ -87,12 +94,8 @@ class Settings:
             self.root_settings: dict = yaml.load(f, yaml.SafeLoader)
 
         # Sensor Settings
-        self.sensor_settings: SensorTypedSettings = self.root_settings.get("sensors")
-
-        self.sensor_count = self.sensor_settings.get("count")
-        self.sensor_calibrations = self.sensor_settings.get("per_sensor_calibrations")
-        self.sensor_xshut = self.sensor_settings.get("xshut_pins")
-        self.sensor_timing_budget = self.sensor_settings.get("timing_budget")
+        self.sensor_settings: list[VL53L0XTypedSettings | GPIOSensorTypedSettings] = self.root_settings.get("sensors")
+        self.sensor_count = len(self.sensor_settings)
 
         # Led Settings
         self.led_settings: LedTypedSettings = self.root_settings.get("leds")

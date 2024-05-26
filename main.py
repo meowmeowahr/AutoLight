@@ -38,7 +38,7 @@ from subsystems.leds import (
     PowerUnits,
     FadeAnimation,
 )
-from subsystems.sensors import VL53L0XSensor
+from subsystems.sensors import VL53L0XSensor, GPIOSensor
 
 from terminal import banner, is_interactive
 
@@ -53,7 +53,7 @@ from data_types import (
 )
 
 import checks
-from settings import Settings
+from settings import Settings, VL53L0XTypedSettings, GPIOSensorTypedSettings
 
 __version__ = "0.3.0"
 
@@ -123,9 +123,7 @@ class Main:
                 fps=settings.led_fps_on,
             )
         )
-        logger.info(
-            f"Initialized {settings.led_count} leds over PCA"
-        )
+        logger.info(f"Initialized {settings.led_count} leds over PCA")
 
         # Create Home Assistant Light
         self.ha_light, self.ha_light_info = self.create_ha_light(
@@ -287,9 +285,7 @@ class Main:
         return ha_light, ha_light_info
 
     def create_extra_lights(self, device_info):
-        logger.debug(
-            f"Using extra light config: {settings.extra_led_settings}"
-        )
+        logger.debug(f"Using extra light config: {settings.extra_led_settings}")
         if not self.ha_light:
             logger.critical(
                 "Extra lights are being created before main lights. Exiting"
@@ -305,9 +301,7 @@ class Main:
                     "ha_name",
                     f"Extra Channel {settings.extra_led_settings[i].get('channel', '?')}",
                 ),
-                icon=settings.extra_led_settings[i].get(
-                    "ha_icon", "mdi:lightbulb"
-                ),
+                icon=settings.extra_led_settings[i].get("ha_icon", "mdi:lightbulb"),
                 device=device_info,
                 unique_id=settings.extra_led_settings[i].get(
                     "ha_id",
@@ -335,19 +329,38 @@ class Main:
         return ha_lights
 
     def create_sensors(self, device_info):
-        sensors: list[VL53L0XSensor] = []
+        sensors: list[VL53L0XSensor | GPIOSensor] = []
+
+        vl_sensors: list[VL53L0XSensor] = []
+        vl_budgets: list[int] = []
+
+        io_sensors: list[GPIOSensor] = []
+
         ha_sensors: list[BinarySensor] = []
 
-        for pin in settings.sensor_xshut[
-            : settings.sensor_count
-        ]:
-            sensors.append(VL53L0XSensor(pin))
+        for sensor in settings.sensor_settings:
+            logger.trace(f"Adding new sensor, {sensor}")
+            sensors.append(sensor)
+            if sensor.get("type") == "vl53l0x_i2c":
+                device = VL53L0XSensor(sensor.get("xshut_pin"), trip_distance=sensor.get("calibration"))
+                vl_budgets.append(sensor.get("timing_budget"))
+                vl_sensors.append(device)
+            else:
+                io_sensors.append(
+                    GPIOSensor(
+                        sensor.get("pin"),
+                        sensor.get("invert", False),
+                        sensor.get("pullup", False),
+                        sensor.get("bounce_time", 0.0),
+                    )
+                )
 
-        for index, pin in enumerate(
-            settings.sensor_xshut[
-                : settings.sensor_count
-            ]
-        ):
+        for index, s in enumerate(vl_sensors):
+            # Physical device
+            vl_sensors[index].begin()
+            vl_sensors[index].timing_budget = vl_budgets[index]
+
+        for index in range(len(sensors)):
             # HA entity
             sensor_info = BinarySensorInfo(
                 name=f"Staircase Segment {index+1}",
@@ -360,11 +373,6 @@ class Main:
             )
             ha_sensors.append(ha_sensor)
 
-            # Physical device
-            sensors[index].begin()
-            sensors[index].timing_budget = settings.sensor_timing_budget
-            sensors[index].trip_distance = settings.sensor_calibrations[index]
-
         return sensors, ha_sensors
 
     def sensor_loop(self):
@@ -372,13 +380,8 @@ class Main:
             for i, s in enumerate(self.sensors):
                 self.sensor_trips[i] = s.tripped
                 self.ha_sensors[i]._update_state(self.sensor_trips[i])
-                self.ha_sensors[i].set_attributes({"distance": s.distance})
-
-                if s.require_restart:
-                    s.require_restart = False
-                    s.updater_thread = threading.Thread(target=s._update_loop, daemon=True)
-                    s.begin(thread=False)
-                    s.updater_thread.start()
+                if isinstance(s, VL53L0XSensor):
+                    self.ha_sensors[i].set_attributes({"distance": s.distance})
             time.sleep(0.05)
 
     def animator_loop(self):
@@ -413,24 +416,15 @@ class Main:
                     )
                     self.led_array.set_animation(i, NullAnimation())
             elif self.lighting_data.effect == Animations.BLINK:
-                if (
-                    square_wave(
-                        time.time(), settings.blink_animation_hz, 1
-                    )
-                    == 1
-                ):
-                    for index in range(
-                        settings.led_count
-                    ):
+                if square_wave(time.time(), settings.blink_animation_hz, 1) == 1:
+                    for index in range(settings.led_count):
                         self.led_array.set_power_state(index, True)
                         self.led_array.set_brightness(
                             index, self.lighting_data.brightness, PowerUnits.BITS8
                         )
                         self.led_array.set_animation(index, NullAnimation())
                 else:
-                    for index in range(
-                        settings.led_count
-                    ):
+                    for index in range(settings.led_count):
                         self.led_array.set_power_state(index, False)
                         self.led_array.set_brightness(
                             index, self.lighting_data.brightness, PowerUnits.BITS8
@@ -444,9 +438,7 @@ class Main:
                     )
                     self.led_array.set_animation(
                         index,
-                        FadeAnimation(
-                            settings.fade_animation_multiplier
-                        ),
+                        FadeAnimation(settings.fade_animation_multiplier),
                     )
 
     def at_exit(self):
