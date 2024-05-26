@@ -27,15 +27,17 @@ class NullSensor(BaseSensor):
 
 class GPIOSensor(BaseSensor):
     def __init__(self, pin: int, invert: bool, pullup: bool = False, bounce_time: float = 0.0):
-        self.device = DigitalInputDevice(pin, pull_up=pullup, active_state=not invert, bounce_time=bounce_time)
+        self.device = DigitalInputDevice(pin, pull_up=pullup, bounce_time=bounce_time)
+        self.invert = invert
+        self.tripped = False
         self.device.when_activated = self._activated
         self.device.when_deactivated = self._deactivated
 
     def _activated(self):
-        self.tripped = True
+        self.tripped = True if not self.invert else False
 
     def _deactivated(self):
-        self.tripped = False
+        self.tripped = False if not self.invert else True
 
     def begin():
         raise NotImplementedError("This function is not implemented")

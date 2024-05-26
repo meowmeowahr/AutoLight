@@ -12,50 +12,64 @@
 #                         |___________ XSHUT_3
 
 sensors:
-  - type: vl53l0x_i2c # sensor type, can either be vl53l0x_i2c or gpio.
-    calibration: 64 # tripping distance
-    xshut_pin: 21 # XSHUT connection for this sensor
-    timing_budget: 72000 # Calculation time alloted to sensor, higher will have better accuracy but may result in lag
-  - type: vl53l0x_i2c
-    calibration: 53
-    xshut_pin: 20
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 55
-    xshut_pin: 7
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 42.5
-    xshut_pin: 8
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 70
-    xshut_pin: 25
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 63
-    xshut_pin: 24
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 55
-    xshut_pin: 16
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 48.5
-    xshut_pin: 12
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 51
-    xshut_pin: 23
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 64
-    xshut_pin: 18
-    timing_budget: 72000
-  - type: vl53l0x_i2c
-    calibration: 74
-    xshut_pin: 15
-    timing_budget: 72000
+  # - type: vl53l0x_i2c # sensor type, can either be vl53l0x_i2c or gpio.
+  #   calibration: 64 # tripping distance
+  #   xshut_pin: 21 # XSHUT connection for this sensor
+  #   timing_budget: 72000 # Calculation time alloted to sensor, higher will have better accuracy but may result in lag
+  # - type: vl53l0x_i2c
+  #   calibration: 53
+  #   xshut_pin: 20
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 55
+  #   xshut_pin: 7
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 42.5
+  #   xshut_pin: 8
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 70
+  #   xshut_pin: 25
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 63
+  #   xshut_pin: 24
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 55
+  #   xshut_pin: 16
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 48.5
+  #   xshut_pin: 12
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 51
+  #   xshut_pin: 23
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 64
+  #   xshut_pin: 18
+  #   timing_budget: 72000
+  # - type: vl53l0x_i2c
+  #   calibration: 74
+  #   xshut_pin: 15
+  #   timing_budget: 72000
+  - type: gpio
+    pin: 21
+  - type: gpio
+    pin: 20
+  - type: gpio
+    pin: 7
+  - type: gpio
+    pin: 8
+  - type: gpio
+    pin: 25
+  - type: gpio
+    pin: 24
+  - type: gpio
+    pin: 16
 
 
 # Led Segment

@@ -340,20 +340,21 @@ class Main:
 
         for sensor in settings.sensor_settings:
             logger.trace(f"Adding new sensor, {sensor}")
-            sensors.append(sensor)
             if sensor.get("type") == "vl53l0x_i2c":
-                device = VL53L0XSensor(sensor.get("xshut_pin"), trip_distance=sensor.get("calibration"))
+                s = VL53L0XSensor(sensor.get("xshut_pin"), trip_distance=sensor.get("calibration"))
                 vl_budgets.append(sensor.get("timing_budget"))
-                vl_sensors.append(device)
+                vl_sensors.append(s)
             else:
-                io_sensors.append(
-                    GPIOSensor(
+                s = GPIOSensor(
                         sensor.get("pin"),
                         sensor.get("invert", False),
                         sensor.get("pullup", False),
                         sensor.get("bounce_time", 0.0),
                     )
+                io_sensors.append(
+                    s
                 )
+            sensors.append(s)
 
         for index, s in enumerate(vl_sensors):
             # Physical device
@@ -447,7 +448,8 @@ class Main:
             return
 
         for sensor in self.sensors:
-            sensor.end()
+            if isinstance(sensor, VL53L0XSensor):
+                sensor.end()
 
         logger.info("Auto-Light stopped")
 
