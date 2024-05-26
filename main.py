@@ -55,7 +55,7 @@ from data_types import (
 import checks
 from settings import Settings, VL53L0XTypedSettings, GPIOSensorTypedSettings
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 class Main:
