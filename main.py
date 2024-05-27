@@ -401,9 +401,9 @@ class Main:
         for index in range(len(sensors)):
             # HA entity
             sensor_info = BinarySensorInfo(
-                name=f"Staircase Segment {index+1}",
-                device_class="motion",
-                unique_id=f"stair_motion_{index}",
+                name=settings.sensor_naming_scheme.format(index+1),
+                device_class=settings.sensor_device_class,
+                unique_id=settings.sensor_id_scheme.format(index),
                 device=device_info,
             )
             ha_sensor = BinarySensor(
@@ -562,8 +562,8 @@ if __name__ == "__main__":
     if settings.log_to_file:
         logger.add(settings.log_file_path, level=log_level)
 
+    # Run mode
     if args.systemd_install:
         main = SystemdInstaller()
-        sys.exit(0)
-
-    main = Main(args)
+    else:
+        main = Main(args)

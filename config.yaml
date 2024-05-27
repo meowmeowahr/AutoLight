@@ -57,6 +57,10 @@ home_assistant:
     name: "Main Control"
     icon: "mdi:stairs"
     id: "light_staircase"
+  sensor_entities:
+    naming_scheme: "Staircase Segment {0}"
+    id_scheme: "stair_motion_{0}"
+    device_class: "motion"
   debugging_entities:
     create_debug_entities: True
     update_rate: 15.0

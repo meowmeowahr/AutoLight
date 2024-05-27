@@ -65,6 +65,11 @@ class LightEntityTypedSettings(TypedDict):
     icon: str
     id: str
 
+class SensorEntitiesTypedSettings(TypedDict):
+    naming_scheme: str
+    id_scheme: str
+    device_class: str
+
 class DebuggingEntitiesTypedSettings(TypedDict):
     create_debug_entities: bool
     update_rate: float
@@ -73,6 +78,7 @@ class HomeAssistantTypedSettings(TypedDict):
     mqtt: MqttTypedSettings
     device: DeviceTypedSettings
     light_entity: LightEntityTypedSettings
+    sensor_entities: SensorEntitiesTypedSettings
     debugging_entities: DebuggingEntitiesTypedSettings
 
 class LoggingTypedSettings(TypedDict):
@@ -150,6 +156,13 @@ class Settings:
         self.light_name = self.light_entity_settings.get("name", "Main Control")
         self.light_icon = self.light_entity_settings.get("icon", "mdi:lightbulb")
         self.light_id = self.light_entity_settings.get("id", "autolight_main")
+
+        # Ha/Sensor
+        self.sensor_entity_settings = self.ha_settings.get("sensor_entities", {})
+
+        self.sensor_naming_scheme = self.sensor_entity_settings.get("naming_scheme", "Sensor {0}")
+        self.sensor_id_scheme = self.sensor_entity_settings.get("id_scheme", "sensor_{0}")
+        self.sensor_device_class = self.sensor_entity_settings.get("device_class", "motion")
 
         # Ha/Debug
         self.debug_entity_settings = self.ha_settings.get("debugging_entities", {})
