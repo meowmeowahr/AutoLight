@@ -13,3 +13,12 @@ Below is an example use of VL53L0X sensors connected to an arduino and then to t
 Example code for this setup can be found [here](https://github.com/meowmeowahr/VL53L0X_DigitalOut).
 
 <img alt="Example use of VL53L0X sensors each connected to an Arduino, and sending a signal to the Pi&#39;s GPIO." src="autolight_vl53l0x_alt_bb.png" width="560"/>
+
+<seealso>
+       <category ref="related">
+           <a href="Configuration-Reference.md#sensor-segment-sensors">Sensor configuration</a>
+       </category>
+       <category ref="external">
+           <a href="https://pinout.xyz">Pinout.xyz</a>
+       </category>
+</seealso>

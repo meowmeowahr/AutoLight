@@ -20,8 +20,6 @@ python main.py [OPTIONS]
 
 ## Options
 
-Describe what each option is used for:
-
 -c, --config
 : Define a custom config.yaml path.
 
@@ -39,7 +37,3 @@ Describe what each option is used for:
 
 -h, --help
 : Displays help.
-
-<seealso>
-    <!--Provide links to related how-to guides, overviews, and tutorials.-->
-</seealso>
