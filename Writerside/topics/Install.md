@@ -61,7 +61,7 @@ Make sure that you have:
 > **Note**
 >
 > AutoLight will no longer autostart after being moved to another directory.
-> If moving, follow the uninstall steps and then re-install it.
+> If moving, follow the uninstallation steps and then re-install it.
 >
 {style="warning"}
 
