@@ -1,61 +1,7 @@
-# Sensor segment
-# Currently only VL53L0X are supported
-# Typical data wiring configuration for a 3-sensor setup (not including power)
-#
-#  _______   _______   _______
-# |       | |       | |       |
-#  -------   -------   -------
-# |_|_|_____|_|_|_____|_|_|_______ SDA
-#   |_|_______|_|_______|_|________ SCL
-#     |_________|_________|_________ XSHUT_1
-#               |_________|__________ XSHUT_2
-#                         |___________ XSHUT_3
+#*# AutoLight Configuration File
+#*# For documentation, see https://meowmeowahr.github.io/AutoLight/configuration-reference.html
 
 sensors:
-  # - type: vl53l0x_i2c # sensor type, can either be vl53l0x_i2c or gpio.
-  #   calibration: 64 # tripping distance
-  #   xshut_pin: 21 # XSHUT connection for this sensor
-  #   timing_budget: 72000 # Calculation time alloted to sensor, higher will have better accuracy but may result in lag
-  # - type: vl53l0x_i2c
-  #   calibration: 53
-  #   xshut_pin: 20
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 55
-  #   xshut_pin: 7
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 42.5
-  #   xshut_pin: 8
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 70
-  #   xshut_pin: 25
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 63
-  #   xshut_pin: 24
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 55
-  #   xshut_pin: 16
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 48.5
-  #   xshut_pin: 12
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 51
-  #   xshut_pin: 23
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 64
-  #   xshut_pin: 18
-  #   timing_budget: 72000
-  # - type: vl53l0x_i2c
-  #   calibration: 74
-  #   xshut_pin: 15
-  #   timing_budget: 72000
   - type: gpio
     pin: 21
   - type: gpio
@@ -71,118 +17,54 @@ sensors:
   - type: gpio
     pin: 16
 
-
-# Led Segment
-# Currently only one PCA9685 i2c pwm driver are supported
-# Led indexes must start at 0
-# Typical led arrangement for 3 leds
-#
-#  0 1 2 3  4 5 6 7  8 9 10 11  12 13 14 15
-#  | | |
-#  | | |_____________ LED2
-#  | |________________ LED1
-#  |___________________ LED0
-
 leds:
-  # Number of leds for main channels
   count: 11
-  # Operation frequency of each led, higher is usually better, maximum is around 1,600 - default: 200
   freq: 200
-  # Led Update rate when system is enabled - default: 120
   fps_on : 120
-  # Led Update rate when system is disabled - default: 60
   fps_off: 60
 
-# Extra led channels on PCA9685
-# All extra leds are GPIO or manually controlled and don't support animations
-# All extra leds must be connected after main leds
-# Typical led arrangement for 4 main leds and 1 extra
-#
-# 0 1 2 3  4 5 6 7  8 9 10 11  12 13 14 1
-# |     |    |
-# ------     |
-# MAIN       EXTRA (5)
 extra_leds:
-  # PCA Channel for extra light
   - channel: 15
-    # Entity name to appear in ha
     ha_name: "Closet Lights"
-    # Entity icon, https://pictogrammers.com/library/mdi/ are the icons available to ha by default
     ha_icon: "mdi:lightbulb"
-    # Device unique id
     ha_id: "extra1"
     
-    # Pi's GPIO Pin for sensor
     gpio_pin: 11
-    # Enable pi's builtin pullup resistor
     gpio_pullup: True
-    # Invert sensor value
     gpio_invert: False
 
-# Per-animation settings
 animations:
-  # Settings for Blink animation
   blink:
-    # Blink rate - default: 2
     blink_hz: 2
-  # Settings for Fade animation
   fade:
-    # Fade speed - default: 0.75
     fade_speed_multiplier: 0.75
   walking:
     activation_radius: 1
 
-# Home Assistant connection and entities
 home_assistant:
-  # MQTT Broker settings
-  # Username and password can be set to "USE_ENV" for use the BROKER_USER and BROKER_PASS environment variables
   mqtt:
-    # Broker address - default: "homeassistant.local"
     host: "homeassistant.local"
-    # Broker's Non-SSL MQTT port - default: 1883
     port: 1883
-    # Broker psername - default: "USE_ENV"
     username: "USE_ENV"
-    # Broker password - default: "USE_ENV"
     password: "USE_ENV"
-    # Maximum time to attempt connection to MQTT - default: 6.0
     connection_timeout: 6.0
-  # Device listing to appear in HA
   device:
-    # Device name - default: "AutoLight Device"
     name: "Staircase Lighting"
-    # Device unique id - default: "autolight_0"
     id: "sl"
-  # Main controller entity to appear in HA
   light_entity:
-    # Entity name - default: "Main Control"
     name: "Main Control"
-    # Entity icon, https://pictogrammers.com/library/mdi/ are the icons available to ha by default- default: "mdi:lightbulb"
     icon: "mdi:stairs"
-    # Light unique id - default: "autolight_main"
     id: "light_staircase"
-  # Extra entities available to ha for monitoring cpu and memory usage
   debugging_entities:
-    # Enabled or not - default: True
     create_debug_entities: True
-    # Update speed in seconds - default: 15.0
     update_rate: 15.0
 
-# Terminal logging settings
-# Possible values are "TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
 logging:
-  # This will usually by the logging level when being used in a interactive terminal - default: "INFO"
   interactive_log_level: "INFO"
-  # This will be the level use in a non-interactive session such as a systemd service - default: "WARNING"
   regular_log_level: "INFO"
-  # This is the optional file to send logs to - default: "logger.log"
   log_file: "logger.log"
-  # Enable logging to file - default: False
   file_logging: True
-  # Enable rich tracebacks using the rich module (only available in interactive terminals) - default: True
   rich_traceback: True
   
-# Misc settings
 misc:
-  # Enable fancy banner for interactive sessions - default: True
   do_banner: true
