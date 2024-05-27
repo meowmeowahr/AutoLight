@@ -69,7 +69,7 @@ from data_types import (
 import checks
 from settings import Settings
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 
 class Main:
