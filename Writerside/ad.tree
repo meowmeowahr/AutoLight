@@ -6,7 +6,6 @@
                  name="AutoLight Docs"
                  start-page="home.topic">
 
-    <toc-element topic="Useful-Resources.md"/>
     <toc-element topic="home.topic"/>
     <toc-element topic="Install.md"/>
     <toc-element topic="Sensors.md">
@@ -16,4 +15,5 @@
     <toc-element topic="Lights.md"/>
     <toc-element topic="Configuration-Reference.md"/>
     <toc-element topic="Arg-Reference.md"/>
+    <toc-element topic="Useful-Resources.md"/>
 </instance-profile>
