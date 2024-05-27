@@ -3,7 +3,7 @@ import smbus2
 
 def list_devices(bus: smbus2.SMBus = smbus2.SMBus(1)):
     addresses = []
-    for address in range(3, 120):  # dont run on reserved addressed
+    for address in range(3, 120):  # don't run on reserved addressed
         try:
             bus.read_byte(address)
             addresses.append(address)
