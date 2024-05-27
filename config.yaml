@@ -129,6 +129,8 @@ animations:
   fade:
     # Fade speed - default: 0.75
     fade_speed_multiplier: 0.75
+  walking:
+    activation_radius: 1
 
 # Home Assistant connection and entities
 home_assistant:

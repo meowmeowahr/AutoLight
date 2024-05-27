@@ -428,7 +428,7 @@ class Main:
                     self.led_array.set_power_state(index, False)
                 continue
             if self.lighting_data.effect == Animations.WALKING:
-                powers = surround_list(self.sensor_trips)
+                powers = surround_list(self.sensor_trips, settings.walking_activation_radius)
                 for index, value in enumerate(powers):
                     self.led_array.set_power_state(index, value)
                     self.led_array.set_brightness(

@@ -1,7 +1,6 @@
 import os
 import sys
 import yaml
-from enum import Enum
 
 from loguru import logger
 
@@ -44,9 +43,13 @@ class _BlinkAnimationTypedSettings(TypedDict):
 class _FadeAnimationTypedSettings(TypedDict):
     fade_speed_multiplier: float
 
+class _WalkingAnimationTypedSettings(TypedDict):
+    activation_radius: int
+
 class AnimationTypedSettings(TypedDict):
     blink: _BlinkAnimationTypedSettings
     fade: _FadeAnimationTypedSettings
+    walking: _WalkingAnimationTypedSettings
 
 class MqttTypedSettings(TypedDict):
     host: str
@@ -115,13 +118,15 @@ class Settings:
 
         # Animations/Blink
         self.blink_animation_settings = self.animation_settings.get("blink", {})
-
         self.blink_animation_hz = self.blink_animation_settings.get("blink_hz", 2)
 
         # Animation/Fade
         self.fade_animation_settings = self.animation_settings.get("fade", {})
-
         self.fade_animation_multiplier = self.fade_animation_settings.get("fade_speed_multiplier", 0.75)
+
+        # Animation/Walking
+        self.walking_animation_settings = self.animation_settings.get("walking", {})
+        self.walking_activation_radius = self.walking_animation_settings.get("activation_radius", 1)
 
         # HA Settings
         self.ha_settings: HomeAssistantTypedSettings = self.root_settings.get("home_assistant", {})
