@@ -38,7 +38,7 @@ def is_systemd():
 
         # Check if it is 'systemd'
         return init_process_name == "systemd"
-    except Exception as e:
+    except Exception:
         # If there's an error (e.g., the /proc filesystem is not available), return False
         return False
 
