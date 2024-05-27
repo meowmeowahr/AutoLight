@@ -27,6 +27,7 @@ from ha_mqtt_discoverable.sensors import (
 from paho.mqtt.client import Client, MQTTMessage
 
 import psutil
+import elevate
 
 from loguru import logger
 from rich.traceback import install as traceback_install
@@ -40,9 +41,8 @@ from subsystems.leds import (
 )
 from subsystems.sensors import VL53L0XSensor, GPIOSensor
 
-from terminal import banner, is_interactive
-
-from utils import surround_list, is_os_64bit, square_wave
+from terminal import banner, is_interactive, ask_yes_no
+from utils import surround_list, is_os_64bit, square_wave, is_root, is_systemd, is_systemd_service_exists, is_systemd_service_running, start_systemd_service, is_systemd_service_enabled, enable_systemd_service
 from data_types import (
     LightingData,
     LIGHT_EFFECTS,
@@ -125,6 +125,8 @@ class Main:
         )
         logger.info(f"Initialized {settings.led_count} leds over PCA")
 
+        print(settings.mqtt_pass)
+
         # Create Home Assistant Light
         self.ha_light, self.ha_light_info = self.create_ha_light(
             self.ha_light_callback, self.device_info
@@ -187,6 +189,16 @@ class Main:
 
         logger.success(f"Auto-Light version {__version__} is up!")
         logger.info(f"Startup time: {round(time.time() - startup_time, 2)}s")
+
+        # Main loop
+        while True:
+            if self.cpu_sensor:
+                self.cpu_sensor.set_state(psutil.cpu_percent())
+
+            if self.mem_sensor:
+                self.mem_sensor.set_state(psutil.virtual_memory()[2])
+
+            time.sleep(settings.debug_update_rate)
 
     def ha_light_callback(self, client: Client, user_data, message: MQTTMessage):
         if not self.ha_light:
@@ -454,6 +466,50 @@ class Main:
         logger.info("Auto-Light stopped")
 
 
+class SystemdInstaller:
+    def __init__(self):
+        if platform.system() != "Linux":
+            logger.critical("Your system is not Linux, exiting now.")
+            logger.warning("Operation cancelled.")
+            sys.exit(0)
+
+        if not is_systemd():
+            logger.critical("Your Linux distro must run systemd. Exiting now.")
+            logger.warning("Operation cancelled.")
+            sys.exit(0)
+
+        if not is_root():
+            if not ask_yes_no("This process will now be elevated as the root user. Do you want to Continue?"):
+                logger.warning("Operation cancelled.")
+                sys.exit(0)
+            else:
+                logger.info("Elevating to root")
+
+        elevate.elevate(graphical=False)
+        if not ask_yes_no("A Systemd Service to auto-start AutoLight on boot will now be installed. Do you want to Continue?"):
+            logger.warning("Operation cancelled.")
+            sys.exit(0)
+
+        # Check if service exists
+        if is_systemd_service_exists("autolight"):
+            logger.info("An AutoLight service already exists")
+            if is_systemd_service_running("autolight"):
+                logger.success("AutoLight service is already running")
+            else:
+                if ask_yes_no("AutoLight service exists, but is not running. Should I start it?"):
+                    start_systemd_service("autolight")
+                    logger.success("AutoLight service has started.")
+
+            if is_systemd_service_enabled("autolight"):
+                logger.success("AutoLight service is enabled.")
+            else:
+                logger.info("AutoLight service is not enabled")
+                if ask_yes_no("AutoLight service is not enabled for start on boot. Should I enabled it?"):
+                    enable_systemd_service("autolight")
+                    logger.success("AutoLight service has been enabled.")
+            
+
+
 if __name__ == "__main__":
     # CLI Argument Parser
     parser = argparse.ArgumentParser(
@@ -491,6 +547,13 @@ if __name__ == "__main__":
         action="store_true",
     )
 
+    parser.add_argument(
+        "--systemd-install",
+        default=False,
+        help="Install systemd service to start on boot",
+        action="store_true"
+    )
+
     args = parser.parse_args()
 
     # Load settings
@@ -515,14 +578,8 @@ if __name__ == "__main__":
     if settings.log_to_file:
         logger.add(settings.log_file_path, level=log_level)
 
+    if args.systemd_install:
+        main = SystemdInstaller()
+        sys.exit(0)
+
     main = Main(args)
-
-    # Main loop
-    while True:
-        if main.cpu_sensor:
-            main.cpu_sensor.set_state(psutil.cpu_percent())
-
-        if main.mem_sensor:
-            main.mem_sensor.set_state(psutil.virtual_memory()[2])
-
-        time.sleep(settings.debug_update_rate)

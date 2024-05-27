@@ -24,6 +24,7 @@ class NullSensor(BaseSensor):
     def __init__(self, trip_distance=None, constant_value=True) -> None:
         self.value = constant_value
         self.distance = trip_distance if constant_value else 999
+        self.tripped = True
 
 class GPIOSensor(BaseSensor):
     def __init__(self, pin: int, invert: bool, pullup: bool = False, bounce_time: float = 0.0):
@@ -32,6 +33,8 @@ class GPIOSensor(BaseSensor):
         self.tripped = False
         self.device.when_activated = self._activated
         self.device.when_deactivated = self._deactivated
+
+        self.tripped = self.device.value if not self.invert else not self.device.value
 
     def _activated(self):
         self.tripped = True if not self.invert else False
