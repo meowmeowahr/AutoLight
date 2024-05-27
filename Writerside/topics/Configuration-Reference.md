@@ -78,10 +78,11 @@ extra_leds:
 
 ## Per-Animation Settings `animations`
 
-- **Blink Animation `blink`:**
-    - `blink_hz`: Blink rate in Hertz - default: 2
-- **Fade Animation `fade`:**
-    - `fade_speed_multiplier`: Fade speed multiplier - default: 0.75
+### Blink Animation `blink`
+- `blink_hz`: Blink rate in Hertz - default: 2
+
+### Fade Animation `fade`
+- `fade_speed_multiplier`: Fade speed multiplier - default: 0.75
 
 Example usage:
 ```yaml
@@ -92,46 +93,70 @@ animations:
     fade_speed_multiplier: 1
 ```
 
-## Home Assistant Connection and Entities
+## Home Assistant and Entities `home_assistant`
 
-### MQTT Broker Settings
+### MQTT Broker Settings `mqtt`
 
-- `host`: Broker address
-- `port`: Broker's Non-SSL MQTT port
-- `username`: Broker username
-- `password`: Broker password
-- `connection_timeout`: Maximum time to attempt connection to MQTT
+> **Tip**
+> It is **never** recommended to store passwords in the plain text config file.
+> Use the `USE_ENV` option to use environment variables
 
-### Device Listing to Appear in Home Assistant
+The username and password options can be set to `USE_ENV` to use the `BROKER_USER` and `BROKER_PASS` environment variables respectively.
+The values will default to blank if the variable isn't defined.
 
-- `name`: Device name
-- `id`: Device unique ID
+- `host`: Broker address - default: "homeassistant.local"
+- `port`: Broker's Non-SSL MQTT port - default: 1883
+- `username`: Broker username - default: "USE_ENV"
+- `password`: Broker password - default: "USE_ENV"
+- `connection_timeout`: Maximum time to attempt connection to MQTT - default: 6
 
-### Main Controller Entity to Appear in Home Assistant
+### Device Listing `device`
 
-- `name`: Entity name
-- `icon`: Entity icon
-- `id`: Light unique ID
+- `name`: Device name - default: "AutoLight Device"
+- `id`: Device unique ID - default: "autolight_0"
 
-### Extra Entities Available for Monitoring CPU and Memory Usage
+### Main Controller Entity to Appear in Home Assistant `light_entity`
 
-- `create_debug_entities`: Enabled or not
-- `update_rate`: Update speed in seconds
+- `name`: Entity name - default: "Main Control"
+- `icon`: Entity icon - default: "mdi:lightbulb"
+- `id`: Light unique ID - default: "autolight_main"
 
----
+### Extra Entities Available for CPU and Memory Usage `debugging_entities`
 
-## Terminal Logging Settings
+- `create_debug_entities`: Enabled or not - default: true
+- `update_rate`: Update speed in seconds - default: 15
 
-Possible values are "TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL".
+Example usage:
+```yaml
+home_assistant:
+  mqtt:
+    host: "homeassistant.local"
+    port: 1883
+    username: "USE_ENV"
+    password: "USE_ENV"
+    connection_timeout: 8
+  device:
+    name: "Staircase Lighting"
+    id: "sl"
+  light_entity:
+    name: "Main Control"
+    icon: "mdi:stairs"
+    id: "light_staircase"
+  debugging_entities:
+    create_debug_entities: True
+    update_rate: 15.0
+```
 
-- `interactive_log_level`: Logging level for interactive terminals
-- `regular_log_level`: Logging level for non-interactive sessions
-- `log_file`: Optional file to send logs to
-- `file_logging`: Enable logging to file
-- `rich_traceback`: Enable rich tracebacks using the rich module (only available in interactive terminals)
+## Terminal Logging Settings `logging`
 
----
+Possible log level values are `TRACE`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
+
+- `interactive_log_level`: Logging level for interactive terminals - default: `INFO`
+- `regular_log_level`: Logging level for non-interactive sessions - default: `WARNING`
+- `log_file`: Optional file to send logs to - default: "logger.log"
+- `file_logging`: Enable logging to file - default: false
+- `rich_traceback`: Enable rich tracebacks using the rich module (only available in interactive terminals) - default: true
 
 ## Misc Settings
 
-- `do_banner`: Enable fancy banner for interactive sessions
+- `do_banner`: Enable fancy startup banner for interactive sessions - default: true
