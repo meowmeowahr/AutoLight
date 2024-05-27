@@ -126,6 +126,12 @@ The values will default to blank if the variable isn't defined.
 - `icon`: Entity icon - default: "mdi:lightbulb"
 - `id`: Light unique ID - default: "autolight_main"
 
+### Sensor entities to appear in Home Assistant `sensor_entities`
+
+- `naming_scheme`: Entity naming scheme to be used in Home Assistant, `{0}` will be replaced with the sensor index starting at one - default: "Sensor {0}"
+- `id_scheme`: Entity unique id scheme to be used in Home Assistant, `{0}` will be replaced with the sensor index starting at zero - default: "sensor_{0}"
+- `device_class`: Device class to be used in Home Assistant - default: "motion"
+
 ### Extra Entities Available for CPU and Memory Usage `debugging_entities`
 
 - `create_debug_entities`: Enabled or not - default: true
@@ -147,6 +153,10 @@ home_assistant:
     name: "Main Control"
     icon: "mdi:stairs"
     id: "light_staircase"
+  sensor_entities:
+    naming_scheme: "Staircase Segment {0}"
+    id_scheme: "stair_motion_{0}"
+    device_class: "motion"
   debugging_entities:
     create_debug_entities: True
     update_rate: 15.0

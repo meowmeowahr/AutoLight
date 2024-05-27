@@ -33,7 +33,7 @@ python main.py [OPTIONS]
 : Enables extra-verbose trace logging
 
 --systemd-install
-: Start guided installation for the Systemd Service for autostart
+: Start guided installation for the Systemd Service for autostart setup
 
 -h, --help
 : Displays help.
