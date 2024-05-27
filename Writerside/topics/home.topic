@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/xhtml-entities.dtd">
+<topic xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="https://resources.jetbrains.com/writerside/1.0/topic.v2.xsd"
+       title="Home" id="home">
+
+    <section-starting-page>
+        <title>AutoLight</title>
+        <description>
+            AutoLight is a highly configurable Raspberry Pi lighting tool for activating lights based on sensor data.
+        </description>
+
+        <spotlight>
+            <a href="Install.md" type="start" summary="Install AutoLight and its dependencies.">Install</a>
+            <a href="Configuration-Reference.md" type="settings" summary="Configuration guide and examples">Configure</a>
+        </spotlight>
+
+        <primary>
+            <title>Base Components</title>
+            <a href="Sensors.md" summary="Usage of different sensor types">Sensors</a>
+            <a href="Lights.md" summary="Connect the PCA9685">Lights</a>
+        </primary>
+
+        <secondary>
+            <title>Deep Dive</title>
+            <a href="Arg-Reference.md" summary="Full cmd-line argument docs">Command Line Reference</a>
+        </secondary>
+
+    </section-starting-page>
+
+</topic>

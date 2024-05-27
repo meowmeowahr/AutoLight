@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE instance-profile
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
+
+<instance-profile id="ad"
+                 name="AutoLight Docs"
+                 start-page="home.topic">
+
+    <toc-element topic="home.topic"/>
+    <toc-element topic="Install.md"/>
+    <toc-element topic="Sensors.md">
+        <toc-element topic="Wiring-Sensors.md"/>
+        <toc-element topic="gpio-sensors.md"/>
+    </toc-element>
+    <toc-element topic="Lights.md"/>
+    <toc-element topic="Configuration-Reference.md"/>
+    <toc-element topic="Arg-Reference.md"/>
+</instance-profile>
