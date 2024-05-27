@@ -5,6 +5,7 @@ import dbus
 
 from loguru import logger
 
+
 def surround_list(input: list[bool], radius=1):
     padded_lst = input.copy()  # Create a copy of the original list
     for i in range(len(input)):
@@ -16,54 +17,68 @@ def surround_list(input: list[bool], radius=1):
                     padded_lst[i + j] = 1
     return padded_lst
 
+
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
+
 def is_os_64bit():
-    return platform.machine().endswith('64')
+    return platform.machine().endswith("64")
+
 
 def is_root():
     return os.getuid() == 0
 
+
 def is_systemd():
     try:
         # Read the name of the process with PID 1
-        with open('/proc/1/comm', 'r') as f:
+        with open("/proc/1/comm", "r") as f:
             init_process_name = f.read().strip()
-        
+
         # Check if it is 'systemd'
-        return init_process_name == 'systemd'
+        return init_process_name == "systemd"
     except Exception as e:
         # If there's an error (e.g., the /proc filesystem is not available), return False
         return False
 
+
 def is_systemd_service_exists(service_name):
     try:
         bus = dbus.SystemBus()
-        systemd1 = bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
-        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
+        systemd1 = bus.get_object(
+            "org.freedesktop.systemd1", "/org/freedesktop/systemd1"
+        )
+        manager = dbus.Interface(systemd1, "org.freedesktop.systemd1.Manager")
 
         # List all units
         units: list = manager.ListUnitFiles()
         for unit in units:
-            if unit[0].split("/")[-1] == service_name + '.service':
+            if unit[0].split("/")[-1] == service_name + ".service":
                 return True
         return False
 
     except dbus.DBusException as e:
         logger.warning(f"DBusException occurred: {repr(e)}")
         return False
+
 
 def is_systemd_service_running(service_name):
     try:
         bus = dbus.SystemBus()
-        systemd1 = bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
-        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
+        systemd1 = bus.get_object(
+            "org.freedesktop.systemd1", "/org/freedesktop/systemd1"
+        )
+        manager = dbus.Interface(systemd1, "org.freedesktop.systemd1.Manager")
 
         # List all active units
         units: list = manager.ListUnits()
         for unit in units:
-            if unit[0] == service_name + '.service' and unit[3] == 'active' and unit[4] == 'running':
+            if (
+                unit[0] == service_name + ".service"
+                and unit[3] == "active"
+                and unit[4] == "running"
+            ):
                 return True
         return False
 
@@ -71,31 +86,37 @@ def is_systemd_service_running(service_name):
         logger.warning(f"DBusException occurred: {repr(e)}")
         return False
 
+
 def start_systemd_service(service_name):
     try:
         bus = dbus.SystemBus()
-        systemd1 = bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
-        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
-        
+        systemd1 = bus.get_object(
+            "org.freedesktop.systemd1", "/org/freedesktop/systemd1"
+        )
+        manager = dbus.Interface(systemd1, "org.freedesktop.systemd1.Manager")
+
         # Start the service
-        manager.StartUnit(service_name + '.service', 'replace')
+        manager.StartUnit(service_name + ".service", "replace")
         logger.info(f"The {service_name} service has been started.")
         return True
     except dbus.DBusException as e:
         logger.error(f"Failed to start the {service_name} service: {repr(e)}")
         return False
 
+
 def is_systemd_service_enabled(service_name):
     try:
         bus = dbus.SystemBus()
-        systemd1 = bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
-        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
+        systemd1 = bus.get_object(
+            "org.freedesktop.systemd1", "/org/freedesktop/systemd1"
+        )
+        manager = dbus.Interface(systemd1, "org.freedesktop.systemd1.Manager")
 
         # Get the unit file state
-        unit_file_state = manager.GetUnitFileState(service_name + '.service')
-        
+        unit_file_state = manager.GetUnitFileState(service_name + ".service")
+
         # Check if the unit file state indicates the service is enabled
-        if unit_file_state == 'enabled':
+        if unit_file_state == "enabled":
             return True
         else:
             return False
@@ -104,25 +125,31 @@ def is_systemd_service_enabled(service_name):
         print(f"DBusException occurred: {e}")
         return False
 
+
 def enable_systemd_service(service_name):
     try:
         bus = dbus.SystemBus()
-        systemd1 = bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
-        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
-        
+        systemd1 = bus.get_object(
+            "org.freedesktop.systemd1", "/org/freedesktop/systemd1"
+        )
+        manager = dbus.Interface(systemd1, "org.freedesktop.systemd1.Manager")
+
         # Enable the service
-        manager.EnableUnitFiles([service_name + '.service'], False, True)
+        manager.EnableUnitFiles([service_name + ".service"], False, True)
         logger.info(f"The {service_name} service has been enabled.")
         return True
     except dbus.DBusException as e:
         logger.error(f"Failed to enable the {service_name} service: {repr(e)}")
         return False
 
+
 def daemon_reload_systemd():
     try:
         bus = dbus.SystemBus()
-        systemd1 = bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
-        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
+        systemd1 = bus.get_object(
+            "org.freedesktop.systemd1", "/org/freedesktop/systemd1"
+        )
+        manager = dbus.Interface(systemd1, "org.freedesktop.systemd1.Manager")
 
         # Reload the systemd manager configuration
         manager.Reload()
@@ -132,17 +159,26 @@ def daemon_reload_systemd():
         logger.error(f"Failed to perform daemon-reload: {repr(e)}")
         return False
 
+
 def get_non_root_user():
     while True:
         # Read the contents of the /etc/passwd file to get a list of users
-        with open('/etc/passwd', 'r') as passwd_file:
+        with open("/etc/passwd", "r") as passwd_file:
             user_list = []
             for line in passwd_file:
-                parts = line.strip().split(':')
+                parts = line.strip().split(":")
                 username = parts[0]
                 home_dir = parts[5]
                 # Include only users with a home directory and a valid shell (excluding nologin)
-                if home_dir not in ['/sbin/nologin', '/bin/false', '/nonexistent', '/', '/root', '/bin', '/dev'] and os.path.isdir(home_dir):
+                if home_dir not in [
+                    "/sbin/nologin",
+                    "/bin/false",
+                    "/nonexistent",
+                    "/",
+                    "/root",
+                    "/bin",
+                    "/dev",
+                ] and os.path.isdir(home_dir):
                     user_list.append(username)
 
         # Prompt the user to enter a username
@@ -150,9 +186,12 @@ def get_non_root_user():
 
         # Check if the provided username is not root
         if username not in user_list:
-            print(f"Error: User '{username}' is not allowed. Please choose from the list.")
+            print(
+                f"Error: User '{username}' is not allowed. Please choose from the list."
+            )
         else:
             return username
+
 
 def square_wave(t, period, amplitude):
     """Generate square wave
@@ -173,6 +212,7 @@ def square_wave(t, period, amplitude):
         return amplitude
     return -amplitude
 
+
 def terminate_thread(thread):
     """Terminates a python thread from another thread.
 
@@ -182,8 +222,7 @@ def terminate_thread(thread):
         return
 
     exc = ctypes.py_object(SystemExit)
-    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
-        ctypes.c_long(thread.ident), exc)
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), exc)
     if res == 0:
         raise ValueError("nonexistent thread id")
     elif res > 1:

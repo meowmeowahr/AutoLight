@@ -11,6 +11,7 @@ import busio
 
 from enum import Enum
 
+
 class _StartupWarnings(Enum):
     NONE = 0
     ENDED = 1
@@ -26,8 +27,11 @@ class NullSensor(BaseSensor):
         self.distance = trip_distance if constant_value else 999
         self.tripped = True
 
+
 class GPIOSensor(BaseSensor):
-    def __init__(self, pin: int, invert: bool, pullup: bool = False, bounce_time: float = 0.0):
+    def __init__(
+        self, pin: int, invert: bool, pullup: bool = False, bounce_time: float = 0.0
+    ):
         self.device = DigitalInputDevice(pin, pull_up=pullup, bounce_time=bounce_time)
         self.invert = invert
         self.tripped = False
@@ -51,6 +55,7 @@ class GPIOSensor(BaseSensor):
 
     def stop():
         raise NotImplementedError("This function is not implemented")
+
 
 class VL53L0XSensor(BaseSensor):
     _address = 0x30
@@ -115,9 +120,13 @@ class VL53L0XSensor(BaseSensor):
 
     def _create_root_device(self):
         try:
-            self.device = _VL53L0X(self.root_i2c, address=VL53L0XSensor._initial_address)
+            self.device = _VL53L0X(
+                self.root_i2c, address=VL53L0XSensor._initial_address
+            )
         except OSError as e:
-            logger.error(f"Error trying to create new _VL53L0X, {repr(e)}, retrying in one second")
+            logger.error(
+                f"Error trying to create new _VL53L0X, {repr(e)}, retrying in one second"
+            )
             time.sleep(1)
             self._create_root_device()
 
@@ -179,7 +188,7 @@ class VL53L0XSensor(BaseSensor):
                 self.distance = self.device.distance
                 if self.distance == -1:
                     raise OSError("Forced fail due to invalid reading")
-                
+
                 cycle += 1
                 if cycle % 100 == 0:
                     logger.trace(

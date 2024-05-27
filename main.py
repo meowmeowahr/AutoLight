@@ -14,7 +14,6 @@ import socket
 import platform
 import functools
 import os
-import shutil
 
 from ha_mqtt_discoverable import Settings as HASettings
 from ha_mqtt_discoverable.sensors import (
@@ -44,7 +43,20 @@ from subsystems.leds import (
 from subsystems.sensors import VL53L0XSensor, GPIOSensor
 
 from terminal import banner, is_interactive, ask_yes_no
-from utils import surround_list, is_os_64bit, square_wave, is_root, is_systemd, is_systemd_service_exists, is_systemd_service_running, start_systemd_service, is_systemd_service_enabled, enable_systemd_service, daemon_reload_systemd, get_non_root_user
+from utils import (
+    surround_list,
+    is_os_64bit,
+    square_wave,
+    is_root,
+    is_systemd,
+    is_systemd_service_exists,
+    is_systemd_service_running,
+    start_systemd_service,
+    is_systemd_service_enabled,
+    enable_systemd_service,
+    daemon_reload_systemd,
+    get_non_root_user,
+)
 from data_types import (
     LightingData,
     LIGHT_EFFECTS,
@@ -55,7 +67,7 @@ from data_types import (
 )
 
 import checks
-from settings import Settings, VL53L0XTypedSettings, GPIOSensorTypedSettings
+from settings import Settings
 
 __version__ = "0.4.0"
 
@@ -355,19 +367,19 @@ class Main:
         for sensor in settings.sensor_settings:
             logger.trace(f"Adding new sensor, {sensor}")
             if sensor.get("type") == "vl53l0x_i2c":
-                s = VL53L0XSensor(sensor.get("xshut_pin"), trip_distance=sensor.get("calibration"))
+                s = VL53L0XSensor(
+                    sensor.get("xshut_pin"), trip_distance=sensor.get("calibration")
+                )
                 vl_budgets.append(sensor.get("timing_budget"))
                 vl_sensors.append(s)
             else:
                 s = GPIOSensor(
-                        sensor.get("pin"),
-                        sensor.get("invert", False),
-                        sensor.get("pullup", False),
-                        sensor.get("bounce_time", 0.0),
-                    )
-                io_sensors.append(
-                    s
+                    sensor.get("pin"),
+                    sensor.get("invert", False),
+                    sensor.get("pullup", False),
+                    sensor.get("bounce_time", 0.0),
                 )
+                io_sensors.append(s)
             sensors.append(s)
 
         for index, s in enumerate(vl_sensors):
@@ -481,14 +493,18 @@ class SystemdInstaller:
             sys.exit(0)
 
         if not is_root():
-            if not ask_yes_no("This process will now be elevated as the root user. Do you want to Continue?"):
+            if not ask_yes_no(
+                "This process will now be elevated as the root user. Do you want to Continue?"
+            ):
                 logger.warning("Operation cancelled.")
                 sys.exit(0)
             else:
                 logger.info("Elevating to root")
 
         elevate.elevate(graphical=False)
-        if not ask_yes_no("A Systemd Service to auto-start AutoLight on boot will now be installed. Do you want to Continue?"):
+        if not ask_yes_no(
+            "A Systemd Service to auto-start AutoLight on boot will now be installed. Do you want to Continue?"
+        ):
             logger.warning("Operation cancelled.")
             sys.exit(0)
 
@@ -498,7 +514,9 @@ class SystemdInstaller:
             if is_systemd_service_running("autolight"):
                 logger.success("AutoLight service is already running")
             else:
-                if ask_yes_no("AutoLight service exists, but is not running. Should I start it?"):
+                if ask_yes_no(
+                    "AutoLight service exists, but is not running. Should I start it?"
+                ):
                     start_systemd_service("autolight")
                     logger.success("AutoLight service has started.")
 
@@ -506,14 +524,18 @@ class SystemdInstaller:
                 logger.success("AutoLight service is enabled.")
             else:
                 logger.info("AutoLight service is not enabled")
-                if ask_yes_no("AutoLight service is not enabled for start on boot. Should I enabled it?"):
+                if ask_yes_no(
+                    "AutoLight service is not enabled for start on boot. Should I enabled it?"
+                ):
                     enable_systemd_service("autolight")
                     logger.success("AutoLight service has been enabled.")
         else:
             logger.info("Service does not exist. Installing.")
 
             script_directory = os.path.dirname(os.path.abspath(__file__))
-            source_file_path = os.path.join(script_directory, "extras/service/autolight.service")
+            source_file_path = os.path.join(
+                script_directory, "extras/service/autolight.service"
+            )
 
             if not os.path.exists("/etc/systemd/system"):
                 logger.critical("/etc/systemd/system does not exist. Exiting")
@@ -524,17 +546,21 @@ class SystemdInstaller:
                 sys.exit(0)
 
             # Read the source file content
-            with open(source_file_path, 'r') as file:
+            with open(source_file_path, "r") as file:
                 content = file.read()
 
             # Replace placeholders with provided values
             user = get_non_root_user()
-            modified_content = content.format(user=user, cmd=f"{sys.executable} {os.path.abspath(__file__)}", wdir=script_directory)
+            modified_content = content.format(
+                user=user,
+                cmd=f"{sys.executable} {os.path.abspath(__file__)}",
+                wdir=script_directory,
+            )
 
             # Write the modified content to the destination file
-            with open("/etc/systemd/system/autolight.service", 'w') as file:
+            with open("/etc/systemd/system/autolight.service", "w") as file:
                 file.write(modified_content)
-            
+
             logger.success("Copied service file")
 
             if daemon_reload_systemd():
@@ -545,7 +571,7 @@ class SystemdInstaller:
 
             start_systemd_service("autolight")
             logger.success("AutoLight service has started.")
-    
+
             enable_systemd_service("autolight")
             logger.success("AutoLight service has been enabled.")
 
@@ -591,7 +617,7 @@ if __name__ == "__main__":
         "--systemd-install",
         default=False,
         help="Install systemd service to start on boot",
-        action="store_true"
+        action="store_true",
     )
 
     args = parser.parse_args()
