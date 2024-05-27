@@ -1,0 +1,15 @@
+[Unit]
+Description=AutoLight Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/AutoLight/
+ExecStart=/home/pi/AutoLight/.venv/bin/python /home/pi/AutoLight/main.py
+Restart=always
+User=pi
+Group=pi
+EnvironmentFile=/etc/environment
+[Install]
+WantedBy=multi-user.target
+

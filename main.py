@@ -13,6 +13,8 @@ import time
 import socket
 import platform
 import functools
+import os
+import shutil
 
 from ha_mqtt_discoverable import Settings as HASettings
 from ha_mqtt_discoverable.sensors import (
@@ -42,7 +44,7 @@ from subsystems.leds import (
 from subsystems.sensors import VL53L0XSensor, GPIOSensor
 
 from terminal import banner, is_interactive, ask_yes_no
-from utils import surround_list, is_os_64bit, square_wave, is_root, is_systemd, is_systemd_service_exists, is_systemd_service_running, start_systemd_service, is_systemd_service_enabled, enable_systemd_service
+from utils import surround_list, is_os_64bit, square_wave, is_root, is_systemd, is_systemd_service_exists, is_systemd_service_running, start_systemd_service, is_systemd_service_enabled, enable_systemd_service, daemon_reload_systemd
 from data_types import (
     LightingData,
     LIGHT_EFFECTS,
@@ -507,7 +509,34 @@ class SystemdInstaller:
                 if ask_yes_no("AutoLight service is not enabled for start on boot. Should I enabled it?"):
                     enable_systemd_service("autolight")
                     logger.success("AutoLight service has been enabled.")
-            
+        else:
+            logger.info("Service does not exist. Installing.")
+
+            script_directory = os.path.dirname(os.path.abspath(__file__))
+            source_file_path = os.path.join(script_directory, "extras/service/autolight.service")
+
+            if not os.path.exists("/etc/systemd/system"):
+                logger.critical("/etc/systemd/system does not exist. Exiting")
+                sys.exit(0)
+
+            if not os.path.exists(source_file_path):
+                logger.critical(f"{source_file_path} does not exist. Exiting")
+                sys.exit(0)
+
+            shutil.copy(source_file_path, "/etc/systemd/system/autolight.service")
+            logger.success("Copied service file")
+
+            if daemon_reload_systemd():
+                logger.success("Systemd Daemod Reloaded")
+            else:
+                logger.critical("Systemd Daemon failed to reload. Exiting")
+                sys.exit(0)
+
+            start_systemd_service("autolight")
+            logger.success("AutoLight service has started.")
+    
+            enable_systemd_service("autolight")
+            logger.success("AutoLight service has been enabled.")
 
 
 if __name__ == "__main__":

@@ -118,6 +118,20 @@ def enable_systemd_service(service_name):
         logger.error(f"Failed to enable the {service_name} service: {repr(e)}")
         return False
 
+def daemon_reload_systemd():
+    try:
+        bus = dbus.SystemBus()
+        systemd1 = bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
+        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
+
+        # Reload the systemd manager configuration
+        manager.Reload()
+        logger.info("systemd daemon-reload performed successfully.")
+        return True
+    except dbus.DBusException as e:
+        logger.error(f"Failed to perform daemon-reload: {repr(e)}")
+        return False
+
 def square_wave(t, period, amplitude):
     """Generate square wave
 
