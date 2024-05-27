@@ -6,6 +6,7 @@
                  name="AutoLight Docs"
                  start-page="home.topic">
 
+    <toc-element topic="Useful-Resources.md"/>
     <toc-element topic="home.topic"/>
     <toc-element topic="Install.md"/>
     <toc-element topic="Sensors.md">
