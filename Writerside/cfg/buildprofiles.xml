@@ -4,7 +4,6 @@
 
     <variables>
         <primary-color>#ff4600</primary-color>
-        <
         <custom-favicons>favicon.svg</custom-favicons>
         <header-logo>icon.svg</header-logo>
         <download-title>Github Repo</download-title>
