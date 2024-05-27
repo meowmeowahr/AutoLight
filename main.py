@@ -139,8 +139,6 @@ class Main:
         )
         logger.info(f"Initialized {settings.led_count} leds over PCA")
 
-        print(settings.mqtt_pass)
-
         # Create Home Assistant Light
         self.ha_light, self.ha_light_info = self.create_ha_light(
             self.ha_light_callback, self.device_info
