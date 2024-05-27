@@ -13,7 +13,6 @@ import time
 import socket
 import platform
 import functools
-import os
 
 from ha_mqtt_discoverable import Settings as HASettings
 from ha_mqtt_discoverable.sensors import (
@@ -28,7 +27,6 @@ from ha_mqtt_discoverable.sensors import (
 from paho.mqtt.client import Client, MQTTMessage
 
 import psutil
-import elevate
 
 from loguru import logger
 from rich.traceback import install as traceback_install
@@ -43,27 +41,18 @@ from subsystems.leds import (
 )
 from subsystems.sensors import VL53L0XSensor, GPIOSensor, NullSensor
 
-from terminal import banner, is_interactive, ask_yes_no
+from terminal import banner, is_interactive
+from service import SystemdInstaller
 from utils import (
     surround_list,
     is_os_64bit,
-    square_wave,
-    is_root,
-    is_systemd,
-    is_systemd_service_exists,
-    is_systemd_service_running,
-    start_systemd_service,
-    is_systemd_service_enabled,
-    enable_systemd_service,
-    daemon_reload_systemd,
-    get_non_root_user,
+    square_wave
 )
 from data_types import (
     LightingData,
     LIGHT_EFFECTS,
     Animations,
     ExtraLightData,
-    ExtraEffects,
     EXTRA_LIGHT_EFFECTS,
 )
 
@@ -503,101 +492,6 @@ class Main:
 
         logger.info("Auto-Light stopped")
 
-
-class SystemdInstaller:
-    def __init__(self):
-        if platform.system() != "Linux":
-            logger.critical("Your system is not Linux, exiting now.")
-            logger.warning("Operation cancelled.")
-            sys.exit(0)
-
-        if not is_systemd():
-            logger.critical("Your Linux distro must run systemd. Exiting now.")
-            logger.warning("Operation cancelled.")
-            sys.exit(0)
-
-        if not is_root():
-            if not ask_yes_no(
-                "This process will now be elevated as the root user. Do you want to Continue?"
-            ):
-                logger.warning("Operation cancelled.")
-                sys.exit(0)
-            else:
-                logger.info("Elevating to root")
-
-        elevate.elevate(graphical=False)
-        if not ask_yes_no(
-            "A Systemd Service to auto-start AutoLight on boot will now be installed. Do you want to Continue?"
-        ):
-            logger.warning("Operation cancelled.")
-            sys.exit(0)
-
-        # Check if service exists
-        if is_systemd_service_exists("autolight"):
-            logger.info("An AutoLight service already exists")
-            if is_systemd_service_running("autolight"):
-                logger.success("AutoLight service is already running")
-            else:
-                if ask_yes_no(
-                    "AutoLight service exists, but is not running. Should I start it?"
-                ):
-                    start_systemd_service("autolight")
-                    logger.success("AutoLight service has started.")
-
-            if is_systemd_service_enabled("autolight"):
-                logger.success("AutoLight service is enabled.")
-            else:
-                logger.info("AutoLight service is not enabled")
-                if ask_yes_no(
-                    "AutoLight service is not enabled for start on boot. Should I enabled it?"
-                ):
-                    enable_systemd_service("autolight")
-                    logger.success("AutoLight service has been enabled.")
-        else:
-            logger.info("Service does not exist. Installing.")
-
-            script_directory = os.path.dirname(os.path.abspath(__file__))
-            source_file_path = os.path.join(
-                script_directory, "extras/service/autolight.service"
-            )
-
-            if not os.path.exists("/etc/systemd/system"):
-                logger.critical("/etc/systemd/system does not exist. Exiting")
-                sys.exit(0)
-
-            if not os.path.exists(source_file_path):
-                logger.critical(f"{source_file_path} does not exist. Exiting")
-                sys.exit(0)
-
-            # Read the source file content
-            with open(source_file_path, "r") as file:
-                content = file.read()
-
-            # Replace placeholders with provided values
-            user = get_non_root_user()
-            modified_content = content.format(
-                user=user,
-                cmd=f"{sys.executable} {os.path.abspath(__file__)}",
-                wdir=script_directory,
-            )
-
-            # Write the modified content to the destination file
-            with open("/etc/systemd/system/autolight.service", "w") as file:
-                file.write(modified_content)
-
-            logger.success("Copied service file")
-
-            if daemon_reload_systemd():
-                logger.success("Systemd Daemod Reloaded")
-            else:
-                logger.critical("Systemd Daemon failed to reload. Exiting")
-                sys.exit(0)
-
-            start_systemd_service("autolight")
-            logger.success("AutoLight service has started.")
-
-            enable_systemd_service("autolight")
-            logger.success("AutoLight service has been enabled.")
 
 
 if __name__ == "__main__":
