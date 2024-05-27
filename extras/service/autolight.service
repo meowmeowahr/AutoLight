@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/pi/AutoLight/
-ExecStart=/home/pi/AutoLight/.venv/bin/python /home/pi/AutoLight/main.py
+WorkingDirectory={wdir}
+ExecStart={cmd}
 Restart=always
-User=pi
-Group=pi
+User={user}
+Group={user}
 EnvironmentFile=/etc/environment
 [Install]
 WantedBy=multi-user.target

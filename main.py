@@ -44,7 +44,7 @@ from subsystems.leds import (
 from subsystems.sensors import VL53L0XSensor, GPIOSensor
 
 from terminal import banner, is_interactive, ask_yes_no
-from utils import surround_list, is_os_64bit, square_wave, is_root, is_systemd, is_systemd_service_exists, is_systemd_service_running, start_systemd_service, is_systemd_service_enabled, enable_systemd_service, daemon_reload_systemd
+from utils import surround_list, is_os_64bit, square_wave, is_root, is_systemd, is_systemd_service_exists, is_systemd_service_running, start_systemd_service, is_systemd_service_enabled, enable_systemd_service, daemon_reload_systemd, get_non_root_user
 from data_types import (
     LightingData,
     LIGHT_EFFECTS,
@@ -523,7 +523,18 @@ class SystemdInstaller:
                 logger.critical(f"{source_file_path} does not exist. Exiting")
                 sys.exit(0)
 
-            shutil.copy(source_file_path, "/etc/systemd/system/autolight.service")
+            # Read the source file content
+            with open(source_file_path, 'r') as file:
+                content = file.read()
+
+            # Replace placeholders with provided values
+            user = get_non_root_user()
+            modified_content = content.format(user=user, cmd=f"{sys.executable} {os.path.abspath(__file__)}", wdir=script_directory)
+
+            # Write the modified content to the destination file
+            with open("/etc/systemd/system/autolight.service", 'w') as file:
+                file.write(modified_content)
+            
             logger.success("Copied service file")
 
             if daemon_reload_systemd():

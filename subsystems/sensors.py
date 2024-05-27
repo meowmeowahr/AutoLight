@@ -34,8 +34,6 @@ class GPIOSensor(BaseSensor):
         self.device.when_activated = self._activated
         self.device.when_deactivated = self._deactivated
 
-        self.tripped = self.device.value if not self.invert else not self.device.value
-
     def _activated(self):
         self.tripped = True if not self.invert else False
 
