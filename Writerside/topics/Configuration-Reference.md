@@ -84,6 +84,9 @@ extra_leds:
 ### Fade Animation `fade`
 - `fade_speed_multiplier`: Fade speed multiplier - default: 0.75
 
+### Walking Animation `walking`
+- `activation_radius`: Number of lights around the activated sensor to activate
+
 Example usage:
 ```yaml
 animations:
@@ -91,6 +94,8 @@ animations:
     blink_hz: 4
   fade:
     fade_speed_multiplier: 1
+  walking:
+    activation_radius: 1
 ```
 
 ## Home Assistant and Entities `home_assistant`
