@@ -1,6 +1,12 @@
+"""
+AutoLight LED Subsystem
+Main and Extra Channel classes
+"""
+
 from dataclasses import dataclass
 import math
 import random
+import sys
 import threading
 import time
 import board
@@ -10,6 +16,9 @@ import atexit
 import enum
 
 from loguru import logger
+
+from subsystems.sensors import NullSensor, GPIOSensor, VL53L0XSensor
+from data_types import ExtraLightData, ExtraEffects
 
 
 class PowerUnits(enum.Enum):
@@ -250,25 +259,24 @@ class PCA9685LedArray:
                     )
 
 
-if __name__ == "__main__":
-    la = PCA9685LedArray()
+class PCA9685ExtraChannel:
+    def __init__(self, controller: PCA9685LedArray, channel: int, sensor: NullSensor | GPIOSensor | VL53L0XSensor = NullSensor()) -> None:
+        # sanity checks
+        if channel < controller.get_led_count():
+            logger.critical(f"An extra led channel {channel} is being initialized in the main channels 0~{controller.get_led_count()-1}. Exiting")
+            sys.exit()
 
-    thread = threading.Thread(target=la.update_loop, daemon=True)
-    thread.start()
+        self.controller = controller
+        self.channel = channel
+        self.sensor = sensor
 
-    # la.set_brightness(0, .005)
-    # la.set_brightness(1, .005)
+    def animation_cycle(self, channel_data: ExtraLightData):
+        if not channel_data.power:
+            self.controller.pca.channels[self.channel].duty_cycle = 0
+            return
+        
+        if channel_data.effect == ExtraEffects.STEADY:
+            self.controller.pca.channels[self.channel].duty_cycle = channel_data.brightness * 257
+        elif channel_data.effect == ExtraEffects.SENSOR:
+            self.controller.pca.channels[self.channel].duty_cycle = channel_data.brightness * 257 if self.sensor.tripped else 0
 
-    for i in range(14):
-        la.set_power_state(i, True)
-        # la.set_power_state(i, True)
-        la.set_animation(i, FadeAnimation(sync=LedSync.SYNC))
-        # la.set_animation(1, FadeAnimation(sync=LedSync.SYNC))
-
-    while True:
-        # la.set_power_state(0, True)
-        # la.set_power_state(1, False)
-        # time.sleep(1)
-        # la.set_power_state(0, False)
-        # la.set_power_state(1, True)
-        time.sleep(1)

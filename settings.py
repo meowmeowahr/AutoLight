@@ -30,9 +30,7 @@ class _ExtraLedTypedSetting(TypedDict):
     ha_name: str
     ha_icon: str
     ha_id: str
-    gpio_pin: int
-    gpio_pullup: bool
-    gpio_invert: bool
+    sensor: GPIOSensorTypedSettings | None
 
 
 ExtraLedsTypedSettings = list[_ExtraLedTypedSetting]

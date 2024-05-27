@@ -28,10 +28,12 @@ extra_leds:
     ha_name: "Closet Lights"
     ha_icon: "mdi:lightbulb"
     ha_id: "extra1"
-    
-    gpio_pin: 11
-    gpio_pullup: True
-    gpio_invert: False
+    sensor:
+      type: gpio
+      pin: 11
+      pullup: True
+      invert: False
+      bounce_time: 0.1
 
 animations:
   blink:

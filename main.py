@@ -35,12 +35,13 @@ from rich.traceback import install as traceback_install
 
 from subsystems.leds import (
     PCA9685LedArray,
+    PCA9685ExtraChannel,
     LedSettings,
     NullAnimation,
     PowerUnits,
     FadeAnimation,
 )
-from subsystems.sensors import VL53L0XSensor, GPIOSensor
+from subsystems.sensors import VL53L0XSensor, GPIOSensor, NullSensor
 
 from terminal import banner, is_interactive, ask_yes_no
 from utils import (
@@ -145,7 +146,7 @@ class Main:
         )
 
         # Create Home Asisstant Extra Lights
-        self.ha_extra_lights = self.create_extra_lights(self.device_info)
+        self.extra_lights, self.ha_extra_lights = self.create_extra_lights(self.device_info)
 
         # Create Home Assistant Debug Devices
         self.cpu_sensor = None
@@ -187,6 +188,11 @@ class Main:
         self.animator_thread = threading.Thread(target=self.animator_loop, daemon=True)
         self.animator_thread.start()
 
+        # Extra Animation thread
+        self.extra_animator_thread = threading.Thread(target=self.extra_animator_loop, daemon=True)
+        if settings.extra_led_count > 0:
+            self.extra_animator_thread.start()
+
         # Set light startup
         time.sleep(0.1)  # Home Assistant needs this small delay
         self.ha_light.brightness(255)
@@ -194,7 +200,6 @@ class Main:
         self.ha_light.on()
 
         for light in self.ha_extra_lights:
-
             light.brightness(255)
             light.effect("Sensor")
             light.on()
@@ -316,7 +321,8 @@ class Main:
             )
             sys.exit()
 
-        ha_lights = []
+        ha_lights: list[Light] = []
+        extra_lights: list[PCA9685ExtraChannel] = []
 
         for i in range(settings.extra_led_count):
             # Information about the light
@@ -329,7 +335,7 @@ class Main:
                 device=device_info,
                 unique_id=settings.extra_led_settings[i].get(
                     "ha_id",
-                    f"extra{settings.extra_led_settings[i].get('channel', '?')}",
+                    f"extra{settings.extra_led_settings[i].get('channel')}",
                 ),
                 brightness=True,
                 color_mode=False,
@@ -348,9 +354,27 @@ class Main:
                 )
             )
 
-            # self.led_array.add_extra_light()
+            sensor_setting = settings.extra_led_settings[i].get('sensor')
 
-        return ha_lights
+            if sensor_setting.get("type") == "gpio":
+                sensor = GPIOSensor(
+                    sensor_setting.get("pin"),
+                    sensor_setting.get("invert", False),
+                    sensor_setting.get("pullup", False),
+                    sensor_setting.get("bounce_time", 0)
+                )
+            else:
+                sensor = NullSensor()
+
+            extra_lights.append(
+                PCA9685ExtraChannel(
+                    self.led_array,
+                    settings.extra_led_settings[i].get('channel'),
+                    sensor
+                )
+            )
+
+        return extra_lights, ha_lights
 
     def create_sensors(self, device_info):
         sensors: list[VL53L0XSensor | GPIOSensor] = []
@@ -466,11 +490,13 @@ class Main:
                         FadeAnimation(settings.fade_animation_multiplier),
                     )
 
-    def at_exit(self):
-        if not self.sensors:
-            logger.error("Auto-Light experienced an error")
-            return
+    def extra_animator_loop(self):
+        while True:
+            time.sleep(1 / settings.led_fps_on)
+            for index, light in enumerate(self.extra_lights):
+                light.animation_cycle(self.extra_lighting_data[index])
 
+    def at_exit(self):
         for sensor in self.sensors:
             if isinstance(sensor, VL53L0XSensor):
                 sensor.end()
